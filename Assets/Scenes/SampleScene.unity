@@ -637,7 +637,7 @@ GameObject:
   - component: {fileID: 196798056}
   - component: {fileID: 196798055}
   m_Layer: 0
-  m_Name: Password
+  m_Name: PasswordField
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3749,7 +3749,7 @@ GameObject:
   - component: {fileID: 1019971355}
   - component: {fileID: 1019971354}
   m_Layer: 0
-  m_Name: Login
+  m_Name: LoginField
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5209,22 +5209,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 706738a0f8f72094cbb221ecb5a499e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LocalName: Derpa
+  LocalName: Torqk
   LogInstanceMax: 500
   LogDisplayMax: 50
   NameLabel: {fileID: 1566441372}
   LogScreen: {fileID: 762459976}
-  LoginTitle: {fileID: 0}
-  LoginStatus: {fileID: 0}
+  LoginTitle: {fileID: 234603483}
+  LoginStatus: {fileID: 1655790509}
   LogInput: {fileID: 1822085992}
-  LoginNameInput: {fileID: 0}
-  LoginPasswordInput: {fileID: 0}
+  LoginNameInput: {fileID: 1019971354}
+  LoginPasswordInput: {fileID: 196798055}
   MasterPanel: {fileID: 1616146511}
   MainPanel: {fileID: 1486214446}
   LoginPanel: {fileID: 1131674037}
+  LogOutButton: {fileID: 2080893923}
+  Login_RegisterButton: {fileID: 1988567455}
   MyLog: {fileID: 2050149438}
   MasterOptionsActive: 1
   DebugScreen: 0
+  LoginState: 0
 --- !u!222 &1451175542
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -7000,7 +7003,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1988567458}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1451175541}
+        m_TargetAssemblyTypeName: LogInterface, Assembly-CSharp
+        m_MethodName: Login_Register
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1988567458
 MonoBehaviour:
   m_ObjectHideFlags: 0

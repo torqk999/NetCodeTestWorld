@@ -43,13 +43,19 @@ public class LogInterface : MonoBehaviour
     public GameObject MainPanel;
     public GameObject LoginPanel;
 
+    /// <summary>
+    /// Test Area for toggled states of Login Panel
+    /// </summary>
+    public GameObject LogOutButton;
+    public GameObject Login_RegisterButton;
+
     public Logger MyLog;
     private StringBuilder LogBuilder = new StringBuilder();
 
     public bool MasterOptionsActive;
     public bool DebugScreen;
 
-    private LoginState LoginState;
+    public LoginState LoginState;
     private LoginState _loginState_cache;
     private bool[] ToggleOptions = new bool[Enum.GetNames(typeof(Toggle)).Length];
     private bool _connected_cache;
@@ -234,24 +240,29 @@ public class LogInterface : MonoBehaviour
         {
             Debug.Log($"Current LoginState: {LoginState}");
             _loginState_cache = LoginState;
+            UpdateName();
+            UpdateLoginPanel();
         }
     }
     void UpdateLoginPanel()
     {
         if (LoginTitle != null)
-        {
-            LoginTitle.text = MyLog.IsSpawned ? $"Login to: {MyLog.UserInstance.Server.ServerName}" : "Not connected to server";
-        }
+            LoginTitle.text = MyLog.IsSpawned ? MyLog.IsAdmin ? $"This is your server: {MyLog.ServerInstance.ServerName}" : $"Login to: {MyLog.ServerInstance.ServerName}" : "Not connected to server";
 
-        if (MyLog.IsAdmin)
-        {
+        if (LoginStatus != null)
+            LoginStatus.text = MyLog.IsSpawned ? MyLog.IsAdmin ? $"You do not need to be here..." : "Please provide your loginName and passWord for this server..." : "Please connect to a server first before logging in..."; 
 
-        }
+        if (LogOutButton != null)
+            LogOutButton.SetActive(!MyLog.IsGuest && !MyLog.IsAdmin);
+
+        if (Login_RegisterButton != null)
+            Login_RegisterButton.SetActive(MyLog.IsSpawned && !MyLog.IsAdmin);
     }
     void Start()
     {
         SetLoginPanelActive(false);
         UpdateName();
+        UpdateLoginPanel();
     }
     void Update()
     {
@@ -310,19 +321,6 @@ public class LogInterface : MonoBehaviour
             {
                 BuildLogString();
                 LogScreen.text = LogBuilder.ToString();
-            }
-            
-            if (MyLog.IsSpawned != _connected_cache)
-            {
-                _connected_cache = MyLog.IsSpawned;
-                UpdateName();
-                UpdateLoginPanel();
-            }
-
-            if (MyLog.MyName != _clientName_cache)
-            {
-                _clientName_cache = MyLog.MyName;
-                UpdateName();
             }
         }
         

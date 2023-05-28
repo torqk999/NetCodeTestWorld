@@ -4,75 +4,6 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-/*public enum Token
-{
-    //LogSeparator = '&',
-    CodonOpen = '<',
-    CodonClose = '>',
-    Label = '@',
-    Value = '#',
-    Terminate = '/',
-    ValueSplit = ':',
-}*/
-
-/*
- 
-<@Log>
-	<#UserName>Torqk<\UserName>
-	<#TimeStamp>1000<\TimeStamp>
-	<#ID_User>123<\ID_User>
-	<#ID_Client>456<\ID_Client>
-	<#Message>Hello World!<\Message>
-<\Log>
-
-<@Log>
-	<@UserName>
-		<#>Torqk<\>
-	<\UserName>
-	<@TimeStamp>
-		<#>1000<\>
-	<\TimeStamp>
-	<@IDs>
-		<#>123<:
-		>456<:
-		>789<\>
-	<\IDs>
-	<@Message>
-		<#>Hello World!<\>
-	<\Message>
-<\Log>
- 
- */
-
-/*public static readonly Dictionary<string, char> Tokens = new Dictionary<string, char>()
-    {
-        { "CodonOpen"   , '<' },
-        { "CodonClose"  , '>' },
-        { "Label"       , '@' },
-        { "Value"       , '#' },
-        { "Terminate"   , '/' },
-        { "ValueSplit"  , ':' },
-    };*/
-
-public enum LogBookElement
-{
-    Book,
-    Log,
-    Login,
-    Credential,
-    TimeStamp,
-    Password,
-    Message,
-    Name,
-    
-    Profile_User,
-    Profile_Server,
-
-    ID_User,
-    ID_Client,
-    ID_Server,
-}
-
 public static class ElementBoxHelper
 {
 
@@ -210,13 +141,13 @@ public static class ElementBoxHelper
     /// <param name="elementLegend">All expected element names.</param>
     /// <param name="elementCount">The total amount of elements populated in tree.</param>
     /// <returns></returns>
-    public static Element BuildElementTree(string dataStream, string[] elementLegend, out int elementCount)
+    public static Element BuildElementTree(string dataStream, string[] elementLegend)//, out int elementCount)
     {
         Dictionary<string, List<string>> valuesCatalogue = new Dictionary<string, List<string>>();
         List<string> valueBuffer = new List<string>();
 
         int codonSize = 0;
-        elementCount = 0;
+        //elementCount = 0;
 
         Element currentBufferedElement = null;
 
@@ -298,7 +229,7 @@ public static class ElementBoxHelper
 
                             currentBufferedElement = newElement;
 
-                            elementCount++;
+                            //elementCount++;
                             Debug.Log($"Element added! Name: {_name_buffer}");
                         }
 
@@ -341,8 +272,7 @@ public static class ElementBoxHelper
     public static LogBook BuildLogBookFromDefaultClientFile()
     {
         string rawStream = ServerDataBase.LoadDefaultLogBookFile();
-        int totalElementsGenerated;
-        Element root = BuildElementTree(rawStream, Enum.GetNames(typeof(LogBookElement)), out totalElementsGenerated);
+        Element root = BuildElementTree(rawStream, Enum.GetNames(typeof(LogBookElement)));
         return new LogBook();
     }
 }
