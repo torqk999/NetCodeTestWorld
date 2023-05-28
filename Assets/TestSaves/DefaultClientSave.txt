@@ -1,0 +1,39 @@
+<@Book>
+	<#TimeStamp>5/27/2023 9:52:25 PM<\TimeStamp>
+	<#ID_Server>18446744073709551615<\ID_Server>
+	<@Log>
+		<#Name>[SERVER]<\Name>
+		<#Message>[SERVER START]<\Message>
+		<#TimeStamp>638208211524072930<\TimeStamp>
+		<#ID_Client>0<\ID_Client>
+		<#ID_User><\ID_User>
+	<\Log>
+	<@Log>
+		<#Name>[SERVER]<\Name>
+		<#Message>[ADMIN] joined the server!<\Message>
+		<#TimeStamp>638208211524182955<\TimeStamp>
+		<#ID_Client>0<\ID_Client>
+		<#ID_User><\ID_User>
+	<\Log>
+	<@Log>
+		<#Name>[SERVER]<\Name>
+		<#Message>Guest:1 joined the server!<\Message>
+		<#TimeStamp>638208211580176367<\TimeStamp>
+		<#ID_Client>0<\ID_Client>
+		<#ID_User><\ID_User>
+	<\Log>
+	<@Log>
+		<#Name>[SERVER]<\Name>
+		<#Message>hello my child<\Message>
+		<#TimeStamp>638208211639874071<\TimeStamp>
+		<#ID_Client>0<\ID_Client>
+		<#ID_User><\ID_User>
+	<\Log>
+	<@Log>
+		<#Name>Guest:1<\Name>
+		<#Message>hello father<\Message>
+		<#TimeStamp>638208211690469075<\TimeStamp>
+		<#ID_Client>1<\ID_Client>
+		<#ID_User><\ID_User>
+	<\Log>
+<\Book>
