@@ -1,38 +1,25 @@
 ﻿using System.IO;
+using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 
 public static class ServerDataBase
 {
-    public static string DefaultServerFilePath { get; private set; } = @"\Assets\TestSaves";
+    public static string DefaultServerFilePath { get; private set; } = @"\Assets\DefaultServer";
     public static string DefaultLogBookFileName { get; private set; } = @"\DefaultLogBookSave.txt";
     public static string DefaultRegistryFileName { get; private set; } = @"\DefaultRegistrySave.txt";
+    public static string DefaultServerFileName { get; private set; } = @"\DefaultServerProfileSave.txt";
+    public static string DefaultTestFileName { get; private set; } = @"\DefaultTestSave.txt";
 
     public static string DirectoryPath => Directory.GetCurrentDirectory() + DefaultServerFilePath;
     public static string LogBookFilePath => DirectoryPath + DefaultLogBookFileName;
     public static string RegistryFilePath => DirectoryPath + DefaultRegistryFileName;
+    public static string ServerFilePath => DirectoryPath + DefaultServerFileName;
+    public static string TestFilePath => DirectoryPath + DefaultTestFileName;
 
-
-    public static string LoadDefaultRegistryFile()
+    public static void GenerateNewDefaultTextFile(string filePath)
     {
-        if (!Directory.Exists(DirectoryPath) || !File.Exists(RegistryFilePath))
-            GenerateNewDefaultRegistryFile();
-
-        return File.ReadAllText(RegistryFilePath);
-    }
-    public static string LoadDefaultLogBookFile()
-    {
-        Debug.Log("Reading LogBook...");
-
-        if (!Directory.Exists(DirectoryPath) || !File.Exists(LogBookFilePath))
-            GenerateNewDefaultLogBookFile();
-
-        return File.ReadAllText(LogBookFilePath);
-    }
-
-    public static void GenerateNewDefaultRegistryFile()
-    {
-        Debug.Log("Creating Registry...");
+        Debug.Log("Creating New TextFile...");
 
         if (!Directory.Exists(DirectoryPath))
         {
@@ -40,35 +27,36 @@ public static class ServerDataBase
             Debug.Log("Directory Created!");
         }
 
-        File.CreateText(RegistryFilePath);
-        Debug.Log("Registry Created!");
+        using (StreamWriter sw = File.CreateText(filePath)) { }
+        //File.CreateText(filePath);
+        Debug.Log("File Created!");
     }
-    public static void GenerateNewDefaultLogBookFile()
+    public static string LoadDefaultTextFile(string filePath)
     {
-        Debug.Log("Creating LogBook...");
+        if (!Directory.Exists(DirectoryPath) || !File.Exists(filePath))
+            GenerateNewDefaultTextFile(filePath);
+
+        string output;
+
+        using (StreamReader sr = File.OpenText(filePath))
+            output = sr.ReadToEnd();
+
+        return output;
+    }
+    public static void SaveDefaultTextFile(string filePath, string contents)
+    {
+        Debug.Log($"Saving file: {filePath}");
+        Debug.Log($"Path exists: {Directory.Exists(DirectoryPath)}");
+        if (Directory.Exists(DirectoryPath))
+            Debug.Log($"File exists: {File.Exists(filePath)}");
 
         if (!Directory.Exists(DirectoryPath))
-        {
             Directory.CreateDirectory(DirectoryPath);
-            Debug.Log("Directory Created!");
-        }
 
-        File.CreateText(LogBookFilePath);
-        Debug.Log("LogBook Created!");
-    }
+        using (StreamWriter sw = File.CreateText(filePath))
+            sw.Write(contents);
+        
 
-    public static void SaveDefaultLogBookFile(string contents)
-    {
-        if (!Directory.Exists(DirectoryPath) || !File.Exists(LogBookFilePath))
-            GenerateNewDefaultLogBookFile();
-
-        File.WriteAllText(LogBookFilePath, contents);
-    }
-    public static void SaveDefaultRegistryFile(string contents)
-    {
-        if (!Directory.Exists(DirectoryPath) || !File.Exists(RegistryFilePath))
-            GenerateNewDefaultLogBookFile();
-
-        File.WriteAllText(RegistryFilePath, contents);
+            //File.WriteAllText(filePath, contents);
     }
 }

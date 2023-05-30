@@ -8,18 +8,20 @@ public static class ElementBoxHelper
 {
 
     #region Tokens
-    public const char CodonOpen    = '<';
-    public const char CodonClose   = '>';
-    public const char Label        = '@';
-    public const char Value        = '#';
-    public const char Terminate    = '\\';
-    public const char ValueSplit   = ':';
+    public const char CodonOpen     = '<';
+    public const char CodonClose    = '>';
+    public const char Label         = '@';
+    public const char Value         = '#';
+    public const char Response      = '%';
+    public const char Terminate     = '\\';
+    public const char ValueSplit    = ':';
     public static readonly char[] Tokens = new char[]
     {
         CodonOpen,
         CodonClose,
         Label,
         Value,
+        Response,
         Terminate,
         ValueSplit
     };
@@ -77,6 +79,10 @@ public static class ElementBoxHelper
         return desiredName;
     }
 
+    public static string PackResponseElementTree(Element root, ResponseCode code)
+    {
+        return $"{CodonOpen}{Response}{code}{CodonClose}\n{PackElement(root)}";
+    }
     public static string PackElementTree(Element root)
     {
         Debug.Log($"Packing ElementTree. Root: {root.Name}");
@@ -133,21 +139,26 @@ public static class ElementBoxHelper
         return _packer.ToString();
     }
 
+    public static Element BuildElementTree(string dataStream, string[] elementLegend)
+    {
+        ResponseCode @null;
+        return BuildElementTree(dataStream, elementLegend, out @null);
+    }
 
     /// <summary>
     /// Returns the root of an element tree produced from a custom xml-styled text (.txt) file.
     /// </summary>
     /// <param name="dataStream">The stream from the text file.</param>
     /// <param name="elementLegend">All expected element names.</param>
-    /// <param name="elementCount">The total amount of elements populated in tree.</param>
+    /// <param name="response">Response from the server. Not always used.</param>
     /// <returns></returns>
-    public static Element BuildElementTree(string dataStream, string[] elementLegend)//, out int elementCount)
+    public static Element BuildElementTree(string dataStream, string[] elementLegend, out ResponseCode response)//, out int elementCount)
     {
         Dictionary<string, List<string>> valuesCatalogue = new Dictionary<string, List<string>>();
         List<string> valueBuffer = new List<string>();
 
         int codonSize = 0;
-        //elementCount = 0;
+        response = ResponseCode.No_Response;
 
         Element currentBufferedElement = null;
 
@@ -182,7 +193,14 @@ public static class ElementBoxHelper
 
                         if (Resolve_Token)
                         {
-                            if (Expecting_Value)
+                            if (Expecting_Code)
+                            {
+                                object responseObject;
+                                Debug.Log($"Recieved code: {Enum.TryParse(typeof(ResponseCode), _name_buffer.ToString(), out responseObject)}");
+                                if (responseObject is ResponseCode)
+                                    response = (ResponseCode)responseObject;
+                            }
+                            else if (Expecting_Value)
                             {
                                 _value_buffer.Remove(_value_buffer.Length - codonSize, codonSize);
                                 valueBuffer.Add(_value_buffer.ToString());
@@ -239,15 +257,18 @@ public static class ElementBoxHelper
                     case Label:
                     case Value:
                     case Terminate:
+                    case Response:
 
                         if (!In_Token_Block || !Expecting_Code)
                             break;
 
-                        Expecting_Code = false;
+                        Expecting_Code = dataStream[i] == Response;
                         Expecting_Value = dataStream[i] == Terminate ? Expecting_Value : dataStream[i] == Value;
-                        Resolve_Token = dataStream[i] == Terminate;
+                        Resolve_Token = dataStream[i] == Terminate || dataStream[i] == Response;
                         Push_To_Name = true;//!Expecting_Value;
                         continue;
+
+
 
                     case ValueSplit:
 
@@ -271,7 +292,7 @@ public static class ElementBoxHelper
     }
     public static LogBook BuildLogBookFromDefaultClientFile()
     {
-        string rawStream = ServerDataBase.LoadDefaultLogBookFile();
+        string rawStream = ServerDataBase.LoadDefaultTextFile(ServerDataBase.LogBookFilePath);
         Element root = BuildElementTree(rawStream, Enum.GetNames(typeof(LogBookElement)));
         return new LogBook();
     }

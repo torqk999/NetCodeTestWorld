@@ -1,4 +1,4 @@
-﻿public enum CustomResponseCode
+﻿public enum ResponseCode
 {
     No_Response,
     Guest_Connection,

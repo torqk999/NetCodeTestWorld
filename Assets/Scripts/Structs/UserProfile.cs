@@ -13,6 +13,7 @@ public struct UserProfile : IElementBoxing
     public bool IsGuest => !_userId.HasValue;
 
     public static UserProfile Admin = new UserProfile(Logger.AdminHandle, Logger.AdminClientId);
+    public static UserProfile Null = new UserProfile();
     
     public UserProfile(ulong guestId)
     {

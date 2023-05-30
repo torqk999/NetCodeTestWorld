@@ -21,32 +21,32 @@ public class Logger : NetworkBehaviour
     public static ulong AdminClientId { get; private set; } = 0;
     public static ulong ServerID { get; private set; } = 69;
 
+    [SerializeField]
+    private bool AUTO_LOAD_SERVER;
+    [SerializeField]
+    private bool AUTO_SAVE_SERVER;
+    [SerializeField]
+    public const int LOG_INSTANCE_MAX = 500; // Needs full implementation...
 
     private Dictionary<ulong, ChatClientHandle> ConnectedHandles = new Dictionary<ulong, ChatClientHandle>();
-    //private Dictionary<string, UserRegistration> KnownRegistrations = new Dictionary<string, UserRegistration>();
-    private UserRegistry RegistryInstance;
-    private LogBook LogInstance;
-    public ServerProfile ServerInstance { get; private set; }
-    public UserProfile UserInstance { get; private set; }
 
-    public ChatClientHandle this[ulong clientId]
-    {
-        get { ChatClientHandle returnHandle; if (!ConnectedHandles.TryGetValue(clientId, out returnHandle)) return null; return returnHandle; }
-        set { try { ConnectedHandles.Add(clientId, value); } catch { ConnectedHandles[clientId] = value; } }
-    }
-    public ChatLog this[int index]
-    {
-        get { try { return LogInstance[index]; } catch { Debug.Log($"ChatLog: Out of Bounds index. Attempt: {index} | Count: {LogInstance.Count}"); return ChatLog.Null; } }
-        set { try { LogInstance[index] = value; } catch { Debug.Log($"ChatLog: Out of Bounds index. Attempt: {index} | Count: {LogInstance.Count}"); } }
-    }
+    private LogBook _logInstance;
+    private UserRegistry? _registryInstance;
+    private ServerProfile? _serverInstance;
+    private UserProfile? _userInstance;
 
+    public LogBook LogInstance => _logInstance;
+    public UserRegistry RegistryInstance => _registryInstance.HasValue ? _registryInstance.Value : UserRegistry.Null;
+    public ServerProfile ServerInstance => _serverInstance.HasValue ? _serverInstance.Value : ServerProfile.Null;
+    public UserProfile? UserInstance => _userInstance; // nullable for the sake of the interface interpreter.
+
+    public bool IsHandled => IsSpawned && UserInstance.HasValue;
     public bool IsAdmin => NetworkManager.IsHost || NetworkManager.IsServer;
-    public bool IsGuest => IsSpawned && UserInstance.IsGuest;
-    public bool IsLoggedIn => IsSpawned && !IsGuest;
-    public string MyName => IsLoggedIn ? UserInstance.UserName : IsGuest ? $"Guest: {NetworkManager.LocalClientId}" : "[No Online Prescence]";// == null? $"Guest:{OwnerClientId}" : UserInstance.UserName;
-    public int InstanceCount => LogInstance.Count;
+    public bool IsGuest => IsHandled && UserInstance.Value.IsGuest;
+    public bool IsLoggedIn => IsHandled && !IsGuest;
+    public string MyName => IsLoggedIn ? UserInstance.Value.UserName : IsGuest ? $"Guest: {NetworkManager.LocalClientId}" : "[No Online Prescence]";// == null? $"Guest:{OwnerClientId}" : UserInstance.UserName;
+    public int InstanceCount => _logInstance.Count;
     public int ClientCount => ConnectedHandles.Count;
-    //public int UserCount =>
     public List<NetworkObject> ClientOwnedObjects => NetworkManager.LocalClient.OwnedObjects;
 
     public static int StringSizeBytes(string input) // Apparantly .Net says so.... https://www.red-gate.com/simple-talk/blogs/how-big-is-a-string-in-net/#:~:text=A%20string%20is%20composed%20of,a%204%2Dbyte%20type%20descriptor)
@@ -87,60 +87,112 @@ public class Logger : NetworkBehaviour
         credentialBuffer.WriteValueSafe(ElementBoxHelper.PackElementTree(credential.Box()));
         NetworkManager.CustomMessagingManager.SendNamedMessage("LoginRequest", AdminClientId, credentialBuffer);
     }
-    public void RecieveChatLog(ulong clientId, FastBufferReader buffer)
+    public void RecieveServerChatLog(ulong clientId, FastBufferReader buffer)
     {
         string packedLog;
         buffer.ReadValueSafe(out packedLog);
 
         Element logElement = ElementBoxHelper.BuildElementTree(packedLog, Enum.GetNames(typeof(LogBookElement)));
 
-        LogInstance.AddLog(new ChatLog(logElement));
+        _logInstance.AddLog(new ChatLog(logElement));
     }
-    public void RecieveUserLoginResponse(ulong clientId, FastBufferReader buffer)
+    public void RecieveServerResponse(ulong clientId, FastBufferReader buffer)
     {
 
         string packedLogin;
         buffer.ReadValueSafe(out packedLogin);
-        Element loginElement = ElementBoxHelper.BuildElementTree(packedLogin, Enum.GetNames(typeof(LogBookElement)));
+        ResponseCode responseCode;
+        Element loginElement = ElementBoxHelper.BuildElementTree(packedLogin, Enum.GetNames(typeof(LogBookElement)), out responseCode);
+        Debug.Log($"ServerResponse: {responseCode}");
 
+        UserResponseToken responseToken = new UserResponseToken(loginElement);
 
-        UserInstance = new UserProfile(loginElement);
-
+        _userInstance = responseToken.Profile;
+        _serverInstance = responseToken.Server;
     }
-    
-
-
     #endregion
+
     #region FileSystem
+    #region Testing
     public void TestWriteFile(string text)
     {
-        ServerDataBase.SaveDefaultLogBookFile(text);
-    }
-    public void SaveTestElementTree()
-    {
-        ServerDataBase.SaveDefaultLogBookFile(ElementBoxHelper.PackElementTree(LogInstance.Box()/*TestElement*/));
-    }
-    public void SaveInstance(string targetPath = null)
-    {
-
-    }
-    public void BuildTestElementTree()
-    {
-        string[] elementLegend = new string[] { "Log", "TimeStamp", "Message", "UserName", "IDs" };
-
-        string rawStream = ServerDataBase.LoadDefaultLogBookFile();
-
-        TestElement = ElementBoxHelper.BuildElementTree(rawStream, elementLegend);
+        ServerDataBase.SaveDefaultTextFile(ServerDataBase.TestFilePath, text);
     }
     public string TestReadFile()
     {
-        return ServerDataBase.LoadDefaultLogBookFile();
+        return ServerDataBase.LoadDefaultTextFile(ServerDataBase.TestFilePath);
     }
-    public void GenerateNewClientFile()
+    public void BuildTestElementTree()
+    {
+        TestElement = ElementBoxHelper.BuildElementTree(ServerDataBase.LoadDefaultTextFile(ServerDataBase.LogBookFilePath), Enum.GetNames(typeof(LogBookElement)));
+    }
+    #endregion
+    public void SaveLogInstance()
+    {
+        ServerDataBase.SaveDefaultTextFile(ServerDataBase.LogBookFilePath, ElementBoxHelper.PackElementTree(_logInstance.Box()));
+    }
+    public void SaveRegistryInstance()
+    {
+        if (!_registryInstance.HasValue)
+        {
+            Debug.LogError("No Registry!");
+            return;
+        }
+        ServerDataBase.SaveDefaultTextFile(ServerDataBase.RegistryFilePath, ElementBoxHelper.PackElementTree(_registryInstance.Value.Box()));
+    }
+    public void SaveServerProfileInstance()
+    {
+        if (!_serverInstance.HasValue)
+        {
+            Debug.LogError("No ServerProfile!");
+            return;
+        }
+        ServerDataBase.SaveDefaultTextFile(ServerDataBase.ServerFilePath, ElementBoxHelper.PackElementTree(_serverInstance.Value.Box()));
+    }
+
+    public void LoadLogInstance()
+    {
+        _logInstance = new LogBook(ElementBoxHelper.BuildElementTree(
+            ServerDataBase.LoadDefaultTextFile(ServerDataBase.LogBookFilePath),
+            Enum.GetNames(typeof(LogBookElement))));
+    }
+    public void LoadRegistryInstance()
+    {
+        _registryInstance = new UserRegistry(ElementBoxHelper.BuildElementTree(
+            ServerDataBase.LoadDefaultTextFile(ServerDataBase.RegistryFilePath),
+            Enum.GetNames(typeof(LogBookElement))));
+    }
+    public void LoadServerInstance()
+    {
+        _serverInstance = new ServerProfile(ElementBoxHelper.BuildElementTree(
+            ServerDataBase.LoadDefaultTextFile(ServerDataBase.ServerFilePath),
+            Enum.GetNames(typeof(LogBookElement))));
+    }
+
+    public void SaveFullServer()
+    {
+        SaveLogInstance();
+        SaveRegistryInstance();
+        SaveServerProfileInstance();
+    }
+
+    public void LoadFullServer()
+    {
+        LoadLogInstance();
+        LoadRegistryInstance();
+        LoadServerInstance();
+    }
+
+    public void ClearRegistry()
+    {
+        if (_registryInstance.HasValue)
+            _registryInstance.Value.Clear();
+    }
+    /*public void GenerateNewClientFile()
     {
         Debug.Log("Sending call to database...");
-        ServerDataBase.GenerateNewDefaultLogBookFile();
-    }
+        ServerDataBase.GenerateNewDefaultTextFile(ServerDataBase.RegistryFilePath);
+    }*/
     #endregion
     #region Server
     public void RecieveMessage(ulong clientId, FastBufferReader buffer)
@@ -171,7 +223,7 @@ public class Logger : NetworkBehaviour
     {
         Debug.Log($"ServerHandle: {ServerHandle} | AdminClientId: {AdminClientId}");
         ChatLog newLog = handle != null ? new ChatLog(message, handle) : new ChatLog(message, ServerHandle, AdminClientId);
-        LogInstance.AddLog(newLog);
+        _logInstance.AddLog(newLog);
         return newLog;
     }
 
@@ -193,8 +245,14 @@ public class Logger : NetworkBehaviour
         NetworkManager.CustomMessagingManager.SendNamedMessageToAll("Log", instanceLog);
         
     }
-    public void RecieveLoginUserRequest(ulong clientId, FastBufferReader credentials)
+    public void RecieveLogin_RegisterUserRequest(ulong clientId, FastBufferReader credentials)
     {
+        if (!_registryInstance.HasValue)
+        {
+            Debug.LogError("No Registry!");
+            return;
+        }
+
         Debug.Log("Checking Credentials...");
         NetworkClient netClient;
         if(!NetworkManager.ConnectedClients.TryGetValue(clientId, out netClient))
@@ -215,44 +273,48 @@ public class Logger : NetworkBehaviour
         credentials.ReadValueSafe(out credentialsPacked);
 
         Element credentialElement = ElementBoxHelper.BuildElementTree(credentialsPacked, Enum.GetNames(typeof(LogBookElement)));
-        
 
+        FastBufferWriter loginResponseBuffer = new FastBufferWriter((int)Chattribute.Credential, Allocator.Persistent, (int)Chattribute.Credential);
         UserCredential credentialRequest = new UserCredential(credentialElement);
         UserRegistration existingRegistration;
-        UserLoginToken loginResponseToken;
-        FastBufferWriter loginResponseBuffer = new FastBufferWriter((int)Chattribute.Credential, Allocator.Persistent, (int)Chattribute.Credential);
+        UserProfile? newDefaultProfile;
+        UserResponseToken loginResponseToken;
 
-        if (RegistryInstance.Registrations.TryGetValue(credentialRequest.LoginName, out existingRegistration))
+        if (RegistryInstance.TryGetValue(credentialRequest.LoginName, out existingRegistration))
         {
             if(!existingRegistration.CheckCredential(credentialRequest))
             {
-                loginResponseToken = new UserLoginToken(ServerInstance, CustomResponseCode.Incorrect_Credential);
-                loginResponseBuffer.WriteValueSafe(ElementBoxHelper.PackElementTree(loginResponseToken.Box()));
-                NetworkManager.CustomMessagingManager.SendNamedMessage("LoginResponse", clientId, loginResponseBuffer);
-                return;
+                loginResponseToken = new UserResponseToken(ServerInstance, ResponseCode.Incorrect_Credential);
+                Debug.Log("Failed login!");
             }
 
-            
             else
+            {
                 chatHandle.Profile = existingRegistration.Profile;
+                loginResponseToken = new UserResponseToken(existingRegistration.Profile, ServerInstance, ResponseCode.Logged_In);
+                ChatMessage($"Welcome back {chatHandle.ClientName}!");
+                Debug.Log($"{chatHandle.ClientName} signed in.");
+            }
+        }
+        else if (!RegistryInstance.AddRegistration(credentialRequest, out newDefaultProfile))
+        {
+            loginResponseToken = new UserResponseToken(ServerInstance, ResponseCode.Incorrect_Credential);
+            Debug.LogError("Registration failed");
         }
         else
         {
-            //UserProfile newUserProfile = new UserProfile(credentialElement.Name, );
-            //UserRegistration newRegistration = new UserRegistration();
-            UserProfile? newUserProfile;
-            if (RegistryInstance.AddRegistration(credentialRequest, out newUserProfile))
-                chatHandle = new ChatClientHandle(netClient, newUserProfile);
+            chatHandle.Profile = newDefaultProfile;
+            loginResponseToken = new UserResponseToken(newDefaultProfile.Value, ServerInstance, ResponseCode.Registered);
+
+            ChatMessage($"{chatHandle.ClientName} Joined the server! Welcome!");
+            Debug.Log($"{chatHandle.ClientName} registered.");
         }
 
-
-        
-        
-
-        ConnectedHandles.Add(clientId, chatHandle);
-        ChatMessage($"{chatHandle.ClientName} Joined the server!");
-
+        loginResponseBuffer.WriteValueSafe(ElementBoxHelper.PackElementTree(loginResponseToken.Box()));
+        NetworkManager.CustomMessagingManager.SendNamedMessage("Response", clientId, loginResponseBuffer);
     }
+
+
 
     public void RecieveLogoutUserRequest(ulong clientId, FastBufferReader credentials)
     {
@@ -283,15 +345,11 @@ public class Logger : NetworkBehaviour
         else
             ConnectedHandles.Add(clientId, guestHandle);
 
-        //string loginResponsePacked = ElementBoxHelper.PackElementTree(guestProfile.Box());
-        //Debug.Log($"loginResponsePacked: {loginResponsePacked}");
-        //FastBufferWriter loginResponseBuffered = new FastBufferWriter((int)Chattribute.LogData, Allocator.Persistent, (int)Chattribute.LogData);
-        //
-        //loginResponseBuffered.WriteValueSafe(loginResponsePacked);
+        UserResponseToken guestResponseToken = new UserResponseToken(ServerInstance);
 
-
-        /////// TESTING //////////
-        //NetworkManager.CustomMessagingManager.SendNamedMessage("Login", clientId, loginResponseBuffered);
+        FastBufferWriter loginResponseBuffered = new FastBufferWriter((int)Chattribute.LogData, Allocator.Persistent, (int)Chattribute.LogData);
+        loginResponseBuffered.WriteValueSafe(ElementBoxHelper.PackElementTree(guestProfile.Box()));
+        NetworkManager.CustomMessagingManager.SendNamedMessage("Response", clientId, loginResponseBuffered);
 
         ChatMessage($"{guestHandle.ClientName} joined the server!");
     }
@@ -331,8 +389,13 @@ public class Logger : NetworkBehaviour
 
     private void ServerCleanUp()
     {
-        Debug.Log($"Removed Me: {ConnectedHandles.Remove(AdminClientId)}");
-        Debug.Log($"Remaining Handles: {ConnectedHandles.Count}");
+        Debug.Log("Server Cleanup...");
+
+        ConnectedHandles.Clear();
+
+        if (AUTO_SAVE_SERVER)
+            SaveFullServer();
+
         Debug.Log("Server Ended...");
     }
 
@@ -345,8 +408,16 @@ public class Logger : NetworkBehaviour
     {
         Debug.Log("Server Setup...");
 
+        if (AUTO_LOAD_SERVER)
+            LoadFullServer();
+        else
+        {
+            _registryInstance = UserRegistry.Default;
+            _serverInstance = ServerProfile.Default;
+        }
+
         NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Message", RecieveMessage);
-        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("LoginRequest", RecieveLoginUserRequest);
+        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("LoginRequest", RecieveLogin_RegisterUserRequest);
         NetworkManager.OnClientConnectedCallback += RegisterGuestChatClient;
         NetworkManager.OnClientDisconnectCallback += UnRegisterChatClient;
 
@@ -359,8 +430,8 @@ public class Logger : NetworkBehaviour
             return;
         }
 
-        UserInstance = UserProfile.Admin;
-        ChatClientHandle adminHandle = new ChatClientHandle(adminClient, UserInstance);
+        _userInstance = UserProfile.Admin;
+        ChatClientHandle adminHandle = new ChatClientHandle(adminClient, _userInstance);
 
         if (ConnectedHandles.ContainsKey(AdminClientId))
         {
@@ -378,12 +449,12 @@ public class Logger : NetworkBehaviour
     {
         Debug.Log("Client Setup...");
 
-        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Log", RecieveChatLog);
-        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("LoginResponse", RecieveUserLoginResponse);
+        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Log", RecieveServerChatLog);
+        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Response", RecieveServerResponse);
     }
     void Start()
     {
-        LogInstance = new LogBook(ulong.MaxValue);
+        _logInstance = new LogBook(Logger.LOG_INSTANCE_MAX);
     }
     void Update()
     {

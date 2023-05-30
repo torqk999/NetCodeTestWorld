@@ -1,0 +1,4 @@
+<@Profile_Server>
+	<#Name>A default server<\Name>
+	<#ID_Server><\ID_Server>
+<\Profile_Server>

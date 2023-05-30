@@ -51,9 +51,12 @@
 
 public enum LogBookElement
 {
+    Registry,
     Book,
+    Server,
     Log,
-    Login,
+    Response,
+    Registration,
     Credential,
     TimeStamp,
     Password,

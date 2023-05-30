@@ -10,6 +10,7 @@ public struct UserCredential : IElementBoxing
 
     public string LoginName => _loginName;
     public bool IsBadCredential => _loginName == null || _password == null;
+    public static UserCredential Null = new UserCredential(null, null);
     public UserCredential(string loginName, string password)
     {
         _loginName = loginName;

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 [Serializable]
 public struct UserRegistration : IElementBoxing
@@ -7,6 +9,14 @@ public struct UserRegistration : IElementBoxing
     public UserProfile Profile { get; private set; }
     public UserCredential Credential { get; private set; }
 
+    public static UserRegistration Null = new UserRegistration(UserProfile.Null, UserCredential.Null);
+    
+    public UserRegistration(UserProfile profile, UserCredential credential)
+    {
+        TimeOfRegistration = DateTime.Now;
+        Profile = profile;
+        Credential = credential;
+    }
     public UserRegistration(ulong userId, UserCredential credential)
     {
         TimeOfRegistration = DateTime.Now;
@@ -29,12 +39,44 @@ public struct UserRegistration : IElementBoxing
 
     public Element Box(Element parent = null)
     {
-        throw new NotImplementedException();
+        Element myElement = new Element(LogBookElement.Registration.ToString());
+
+        myElement.AddValueSafe(LogBookElement.TimeStamp.ToString(), TimeOfRegistration.Ticks.ToString());
+        myElement.AddChildSafe(Profile.Box());
+        myElement.AddChildSafe(Credential.Box());
+
+        return myElement;
     }
 
-    public void UnBox(Element consume)
+    public void UnBox(Element registrationElement)
     {
-        throw new NotImplementedException();
+        try
+        {
+            LogBookElement element;
+
+            foreach (KeyValuePair<string, List<Element>> childPair in registrationElement.Children)
+            {
+                if (!ElementBoxHelper.TryParseCastEnum(childPair.Key, out element))
+                    continue;
+
+                switch(element)
+                {
+                    case LogBookElement.Profile_User:
+                        Profile = new UserProfile(childPair.Value[0]);
+                        break;
+
+                    case LogBookElement.Credential:
+                        Credential = new UserCredential(childPair.Value[0]);
+                        break;
+                }
+            }
+
+            if (!registrationElement.Values.ContainsKey(LogBookElement.TimeStamp.ToString()))
+                return;
+
+            TimeOfRegistration = new DateTime(long.Parse(registrationElement.Values[LogBookElement.TimeStamp.ToString()][0]));
+        }
+        catch { Debug.Log("Registration Un-Boxing failed!"); }
     }
 
     public override bool Equals(object obj)

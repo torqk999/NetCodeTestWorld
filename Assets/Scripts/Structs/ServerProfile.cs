@@ -7,19 +7,20 @@ public struct ServerProfile : IElementBoxing
 {
     private string _serverName;
     private ulong? _serverId;
-    private DateTime? _creation;
+    private DateTime _creation;
     private DateTime? _last_activation;
     private DateTime? _last_deactivation;
     public string ServerName => _serverName == null ? "Un-named Server" : _serverName;
     public ulong ServerId => _serverId.HasValue? _serverId.Value : ulong.MaxValue;
     public bool IsRegistered => _serverId.HasValue;
 
-    //public static ServerProfile Default = new ServerProfile();
+    public static ServerProfile Null = new ServerProfile();
+    public static ServerProfile Default = new ServerProfile("A default server");
     public ServerProfile(string serverName = null, ulong? serverId = null, DateTime? creation = null, DateTime? lastActivation = null, DateTime? lastDeActivation = null)
     {
         _serverName = serverName;
         _serverId = serverId;
-        _creation = creation;
+        _creation = creation.HasValue ? creation.Value : DateTime.Now;
         _last_activation = lastActivation;
         _last_deactivation = lastDeActivation;
     }
@@ -27,7 +28,7 @@ public struct ServerProfile : IElementBoxing
     {
         _serverName = null;
         _serverId = null;
-        _creation = null;
+        _creation = DateTime.Now;
         _last_activation = null;
         _last_deactivation = null;
         UnBox(serverElement);

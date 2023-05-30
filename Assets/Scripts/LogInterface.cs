@@ -8,12 +8,14 @@ public enum Toggle
 {
     Time,
     Date,
-    ID
+    ID_Client,
+    ID_User
 }
 
 public enum LoginState
 {
     Disconnected,
+    UnHandled,
     Guest,
     User,
     Admin,
@@ -25,8 +27,7 @@ public class LogInterface : MonoBehaviour
 {
     [SerializeField]
     private string LocalName;
-    [SerializeField]
-    private int LogInstanceMax = 500;
+    
     [SerializeField]
     private int LogDisplayMax = 50;
 
@@ -49,7 +50,7 @@ public class LogInterface : MonoBehaviour
     public GameObject LogOutButton;
     public GameObject Login_RegisterButton;
 
-    public Logger MyLog;
+    public Logger MyLogger;
     private StringBuilder LogBuilder = new StringBuilder();
 
     public bool MasterOptionsActive;
@@ -63,7 +64,7 @@ public class LogInterface : MonoBehaviour
     
     public void BuildLogString()
     {
-        if (MyLog.InstanceCount == 0)
+        if (MyLogger.InstanceCount == 0)
             return;
 
         LogBuilder.Clear();
@@ -72,78 +73,86 @@ public class LogInterface : MonoBehaviour
         DateTime clientDateBuffer = DateTime.Now;
         bool adminBuffer = false;
 
-        for (int i = MyLog.InstanceCount - LogDisplayMax < 0 ? 0 : MyLog.InstanceCount - LogDisplayMax; i < MyLog.InstanceCount; i++)
+        for (int i = MyLogger.InstanceCount - LogDisplayMax < 0 ? 0 : MyLogger.InstanceCount - LogDisplayMax; i < MyLogger.InstanceCount; i++)
         {
-            if (MyLog[i].ClientID == 0)
+            if (MyLogger.LogInstance[i].ClientID == 0)
             {
                 if (!adminBuffer)
                 {
                     clientSpamBuffer = Logger.AdminClientId;
                     adminBuffer = true;
-                    LogBuilder.Append($"{MyLog[i].UserName}{(GetOption(Toggle.ID) ? $" | {MyLog[i].ClientID}" : "")}{(GetOption(Toggle.Date) ? $" | {MyLog[i].TimeStamp.ToString("d:M:y")}" : "")}\n");
+                    LogBuilder.Append($"{MyLogger.LogInstance[i].UserName}{(GetOption(Toggle.ID_Client) ? $" | {MyLogger.LogInstance[i].ClientID}" : "")}{(GetOption(Toggle.Date) ? $" | {MyLogger.LogInstance[i].TimeStamp.ToString("d:M:y")}" : "")}\n");
                 }
             }
             else
             {
                 adminBuffer = false;
             }
-            if (MyLog[i].ClientID.HasValue && clientSpamBuffer != MyLog[i].ClientID.Value)
+            if (MyLogger.LogInstance[i].ClientID.HasValue && clientSpamBuffer != MyLogger.LogInstance[i].ClientID.Value)
             {
-                clientSpamBuffer = MyLog[i].ClientID.Value;
-                clientDateBuffer = MyLog[i].TimeStamp;
-                LogBuilder.Append($"{MyLog[i].UserName}{(GetOption(Toggle.ID) ? $" | {MyLog[i].ClientID}" : "")}{(GetOption(Toggle.Date) ? $" | {MyLog[i].TimeStamp.ToString("d:M:y")}" : "")}\n");
+                clientSpamBuffer = MyLogger.LogInstance[i].ClientID.Value;
+                clientDateBuffer = MyLogger.LogInstance[i].TimeStamp;
+                LogBuilder.Append($"{MyLogger.LogInstance[i].UserName}{(GetOption(Toggle.ID_Client) ? $" | {MyLogger.LogInstance[i].ClientID}" : "")}{(GetOption(Toggle.Date) ? $" | {MyLogger.LogInstance[i].TimeStamp.ToString("d:M:y")}" : "")}\n");
             }
-            if (GetOption(Toggle.Date) && clientDateBuffer.Date != MyLog[i].TimeStamp.Date)
+            if (GetOption(Toggle.Date) && clientDateBuffer.Date != MyLogger.LogInstance[i].TimeStamp.Date)
             {
-                LogBuilder.Append($"{MyLog[i].TimeStamp.ToString("d:M:y")}\n");
+                LogBuilder.Append($"{MyLogger.LogInstance[i].TimeStamp.ToString("d:M:y")}\n");
             }
-            LogBuilder.Append($"    {(GetOption(Toggle.Time) ? $"{MyLog[i].TimeStamp.ToString("hh:mm:ss")} " : "")}- {MyLog[i].Message}\n");
+            LogBuilder.Append($"    {(GetOption(Toggle.Time) ? $"{MyLogger.LogInstance[i].TimeStamp.ToString("hh:mm:ss")} " : "")}- {MyLogger.LogInstance[i].Message}\n");
         }
     }
 
-    public void NewClientFile()
+    public void ClearRegistry()
     {
-        if (MyLog == null)
+        if (MyLogger == null)
             return;
 
-        Debug.Log("Sending call to logger...");
-        MyLog.GenerateNewClientFile();
+        MyLogger.ClearRegistry();
     }
 
     public void TestReadFile()
     {
-        if (MyLog == null || LogScreen == null)
+        if (MyLogger == null || LogScreen == null)
             return;
 
-        LogScreen.text = MyLog.TestReadFile();
+        LogScreen.text = MyLogger.TestReadFile();
     }
     public void TestWriteFile()
     {
-        if (MyLog == null || LogInput == null)
+        if (MyLogger == null || LogInput == null)
             return;
 
-        MyLog.TestWriteFile(LogInput.text);
+        MyLogger.TestWriteFile(LogInput.text);
     }
     public void TestBuild()
     {
-        if (MyLog == null)
+        if (MyLogger == null)
             return;
 
-        MyLog.BuildTestElementTree();
+        MyLogger.BuildTestElementTree();
     }
-    public void SaveInstance()
+    
+    public void FullServerSave()
     {
-        if (MyLog == null)
+        if (MyLogger == null)
             return;
 
-        MyLog.SaveTestElementTree();
+        MyLogger.SaveFullServer();
     }
+    public void FullServerLoad()
+    {
+        if (MyLogger == null)
+            return;
+
+        MyLogger.LoadFullServer();
+    }
+
     public void Login_Register()
     {
         if (LoginNameInput == null || LoginPasswordInput == null)
             return;
 
-        MyLog.SendLoginUserRequest(LoginNameInput.text, LoginPasswordInput.text);
+        MyLogger.SendLoginUserRequest(LoginNameInput.text, LoginPasswordInput.text);
     }
 
     public void SendInputAsMessage()
@@ -159,7 +168,7 @@ public class LogInterface : MonoBehaviour
             return;
         }
 
-        MyLog.ChatMessage(LogInput.text);
+        MyLogger.ChatMessage(LogInput.text);
         LogInput.text = string.Empty;
         LogInput.MoveTextStart(false);
         //LogInput.MoveToEndOfLine(false, true);
@@ -211,26 +220,28 @@ public class LogInterface : MonoBehaviour
     void UpdateName()
     {
         if (NameLabel != null)
-            NameLabel.text = MyLog != null && MyLog.IsSpawned ? $"<< [Online] {MyLog.MyName} >>" :
+            NameLabel.text = MyLogger != null && MyLogger.IsSpawned ? MyLogger.IsHandled ? $"<< [Online] {MyLogger.MyName} >>" :
+                "<< Awaiting Handle from server... >>>" :
                 $"<< [Offline] {(LocalName == null ? "[No Local Name]" : LocalName)} >>";
     }
     void UpdateLoginState()
     {
         //Debug.Log("Updating Login State...");
         //LoginState oldLoginState = _loginState_cache;
-        if (!MyLog.IsSpawned)
+        if (!MyLogger.IsSpawned)
         {
-            //Debug.Log("IsDisconnected");
             LoginState = LoginState.Disconnected;
         }
-        else if (MyLog.IsAdmin)
+        else if (MyLogger.IsAdmin)
         {
-            //Debug.Log("IsAdmin");
             LoginState = LoginState.Admin;
         }
-        else if (MyLog.IsGuest)
+        else if (!MyLogger.IsHandled)
         {
-            //Debug.Log("IsGuest");
+            LoginState = LoginState.UnHandled;
+        }
+        else if (MyLogger.IsGuest)
+        {
             LoginState = LoginState.Guest;
         }
         else
@@ -247,16 +258,16 @@ public class LogInterface : MonoBehaviour
     void UpdateLoginPanel()
     {
         if (LoginTitle != null)
-            LoginTitle.text = MyLog.IsSpawned ? MyLog.IsAdmin ? $"This is your server: {MyLog.ServerInstance.ServerName}" : $"Login to: {MyLog.ServerInstance.ServerName}" : "Not connected to server";
+            LoginTitle.text = MyLogger.IsSpawned ? MyLogger.IsAdmin ? $"This is your server: {MyLogger.ServerInstance.ServerName}" : $"Login to: {MyLogger.ServerInstance.ServerName}" : "Not connected to server";
 
         if (LoginStatus != null)
-            LoginStatus.text = MyLog.IsSpawned ? MyLog.IsAdmin ? $"You do not need to be here..." : "Please provide your loginName and passWord for this server..." : "Please connect to a server first before logging in..."; 
+            LoginStatus.text = MyLogger.IsSpawned ? MyLogger.IsAdmin ? $"You do not need to be here..." : "Please provide your loginName and passWord for this server..." : "Please connect to a server first before logging in..."; 
 
         if (LogOutButton != null)
-            LogOutButton.SetActive(!MyLog.IsGuest && !MyLog.IsAdmin);
+            LogOutButton.SetActive(MyLogger.IsSpawned && !MyLogger.IsGuest && !MyLogger.IsAdmin);
 
         if (Login_RegisterButton != null)
-            Login_RegisterButton.SetActive(MyLog.IsSpawned && !MyLog.IsAdmin);
+            Login_RegisterButton.SetActive(MyLogger.IsSpawned && !MyLogger.IsAdmin);
     }
     void Start()
     {
@@ -313,7 +324,7 @@ public class LogInterface : MonoBehaviour
             LogScreen.fontSize += (xDelta + yDelta);
             LogScreen.transform.localPosition = new Vector3(LogScreen.transform.localPosition.x, 0, LogScreen.transform.localPosition.z);
         }
-        if (MyLog != null)
+        if (MyLogger != null)
         {
             UpdateLoginState();
 

@@ -3,39 +3,39 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
-public struct UserLoginToken : IElementBoxing
+public struct UserResponseToken : IElementBoxing
 {
     public UserProfile Profile;
     public ServerProfile Server;
-    public CustomResponseCode LoginResponse;
+    public ResponseCode Response;
 
-    public UserLoginToken(ServerProfile server, CustomResponseCode code = CustomResponseCode.Guest_Connection)
+    public UserResponseToken(ServerProfile server, ResponseCode code = ResponseCode.Guest_Connection)
     {
         Profile = new UserProfile();
         Server = server;
-        LoginResponse = code;
+        Response = code;
     }
-    public UserLoginToken(UserProfile profile, ServerProfile server, CustomResponseCode code)
+    public UserResponseToken(UserProfile profile, ServerProfile server, ResponseCode code)
     {
         Profile = profile;
         Server = server;
-        LoginResponse = code;
+        Response = code;
     }
 
-    public UserLoginToken(Element loginElement)
+    public UserResponseToken(Element loginElement)
     {
         Profile = new UserProfile();
         Server = new ServerProfile();
-        LoginResponse = default;
+        Response = default;
         UnBox(loginElement);
     }
 
     public Element Box(Element parent = null)
     {
-        Element myElement = new Element(LogBookElement.Login.ToString(), parent);
+        Element myElement = new Element(LogBookElement.Response.ToString(), parent);
         myElement.AddChildSafe(Profile.Box());
         myElement.AddChildSafe(Server.Box());
-        myElement.AddValueSafe(LogBookElement.Code_Response.ToString(), LoginResponse.ToString());
+        myElement.AddValueSafe(LogBookElement.Code_Response.ToString(), Response.ToString());
         return myElement;
     }
 

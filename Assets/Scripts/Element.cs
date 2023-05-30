@@ -39,8 +39,8 @@ public class Element
     private string _name;
     private Element _parent;
 
-    [SerializeField]
-    private List<Element> _childList = new List<Element>();
+    //[SerializeField]
+    //private List<Element> _childList = new List<Element>();
 
     private Dictionary<string, List<string>> _values = new Dictionary<string, List<string>>();
     private Dictionary<string, List<Element>> _children = new Dictionary<string, List<Element>>();
@@ -75,8 +75,8 @@ public class Element
         if (newChild == null)
             return;
 
-        Debug.Log($"existing child removed: {_childList.Remove(newChild)}");
-        _childList.Add(newChild);
+        //Debug.Log($"existing child removed: {_childList.Remove(newChild)}");
+        //_childList.Add(newChild);
 
         if (_children.ContainsKey(newChild.Name))
             _children[newChild.Name].Add(newChild);

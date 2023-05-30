@@ -1,0 +1,13 @@
+<@Registry>
+	<@Registration>
+		<#TimeStamp>638210045519077487<\TimeStamp>
+		<@Profile_User>
+			<#Name>Derpa<\Name>
+			<#ID_User>0<\ID_User>
+		<\Profile_User>
+		<@Credential>
+			<#Name>Derpa<\Name>
+			<#Password>password<\Password>
+		<\Credential>
+	<\Registration>
+<\Registry>
