@@ -10,18 +10,20 @@ using UnityEngine;
 /// </summary>
 public class ChatClientHandle
 {
-    public string ClientName => Profile.HasValue ? Profile.Value.UserName : $"Guest:{ClientId}";
+    public string ClientName => Registration.HasValue ? Registration.Value.Profile.UserName : $"Guest:{ClientId}";
     public ulong ClientId => NetClient == null ? ulong.MaxValue : NetClient.ClientId;
-    public bool IsGuest => !Profile.HasValue;
+    public bool IsGuest => !Registration.HasValue;
 
     public NetworkClient NetClient;
-    public UserProfile? Profile;
+    public UserRegistration? Registration;
 
-    public ChatClientHandle(NetworkClient client, UserProfile? profile = null)
+    public ChatClientHandle(NetworkClient client, UserRegistration? registration = null)
     {
         Debug.Log($"Constructing Handle [client is null?:{client == null}]");
         NetClient = client;
-        Profile = profile;
+        Registration = registration;
     }
     public ChatClientHandle(NetworkClient client) : this(client, null) { }
+
+
 }

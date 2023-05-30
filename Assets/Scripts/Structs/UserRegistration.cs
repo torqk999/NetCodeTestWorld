@@ -9,18 +9,19 @@ public struct UserRegistration : IElementBoxing
     public UserProfile Profile { get; private set; }
     public UserCredential Credential { get; private set; }
 
-    public static UserRegistration Null = new UserRegistration(UserProfile.Null, UserCredential.Null);
+    //public static readonly UserRegistration Admin = new UserRegistration(Se UserProfile.Admin, UserCredential.Null);
+    public static readonly UserRegistration Null = new UserRegistration(ServerProfile.Null, UserProfile.Null, UserCredential.Null);
     
-    public UserRegistration(UserProfile profile, UserCredential credential)
+    public UserRegistration(ServerProfile server, UserProfile profile, UserCredential credential)
     {
         TimeOfRegistration = DateTime.Now;
         Profile = profile;
         Credential = credential;
     }
-    public UserRegistration(ulong userId, UserCredential credential)
+    public UserRegistration(ServerProfile server, ulong userId, UserCredential credential)
     {
         TimeOfRegistration = DateTime.Now;
-        Profile = new UserProfile(credential.LoginName, userId);
+        Profile = new UserProfile(server, credential.LoginName, userId);
         Credential = credential;
     }
 
@@ -39,7 +40,7 @@ public struct UserRegistration : IElementBoxing
 
     public Element Box(Element parent = null)
     {
-        Element myElement = new Element(LogBookElement.Registration.ToString());
+        Element myElement = new Element(LogBookElement.Registration.ToString(), parent);
 
         myElement.AddValueSafe(LogBookElement.TimeStamp.ToString(), TimeOfRegistration.Ticks.ToString());
         myElement.AddChildSafe(Profile.Box());

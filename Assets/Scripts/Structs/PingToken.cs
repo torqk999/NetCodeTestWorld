@@ -3,29 +3,33 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
-public struct UserResponseToken : IElementBoxing
+public struct PingToken : IElementBoxing
 {
-    public UserProfile Profile;
-    public ServerProfile Server;
+    public UserList? RequestedList;
+    public UserProfile? RequestedProfile;
+    public ServerProfile? RequestedServerInfo;
     public ResponseCode Response;
 
-    public UserResponseToken(ServerProfile server, ResponseCode code = ResponseCode.Guest_Connection)
+    public PingToken(ServerProfile server, ResponseCode code = ResponseCode.Guest_Connection)
     {
-        Profile = new UserProfile();
-        Server = server;
+        RequestedList = null;
+        RequestedProfile = null;
+        RequestedServerInfo = server;
         Response = code;
     }
-    public UserResponseToken(UserProfile profile, ServerProfile server, ResponseCode code)
+    public PingToken(ResponseCode code, UserList? list = null, UserProfile? profile = null, ServerProfile? server = null)
     {
-        Profile = profile;
-        Server = server;
+        RequestedList = list;
+        RequestedProfile = profile;
+        RequestedServerInfo = server;
         Response = code;
     }
 
-    public UserResponseToken(Element loginElement)
+    public PingToken(Element loginElement)
     {
-        Profile = new UserProfile();
-        Server = new ServerProfile();
+        RequestedList = null;
+        RequestedProfile = null;
+        RequestedServerInfo = null;
         Response = default;
         UnBox(loginElement);
     }
@@ -33,8 +37,9 @@ public struct UserResponseToken : IElementBoxing
     public Element Box(Element parent = null)
     {
         Element myElement = new Element(LogBookElement.Response.ToString(), parent);
-        myElement.AddChildSafe(Profile.Box());
-        myElement.AddChildSafe(Server.Box());
+        if (RequestedList.HasValue) myElement.AddChildSafe(RequestedList.Value.Box());
+        if (RequestedProfile.HasValue) myElement.AddChildSafe(RequestedProfile.Value.Box());
+        if (RequestedServerInfo.HasValue) myElement.AddChildSafe(RequestedServerInfo.Value.Box());
         myElement.AddValueSafe(LogBookElement.Code_Response.ToString(), Response.ToString());
         return myElement;
     }
@@ -53,11 +58,11 @@ public struct UserResponseToken : IElementBoxing
                 switch(element)
                 {
                     case LogBookElement.Profile_User:
-                        Profile = new UserProfile(childPair.Value[0]);
+                        RequestedProfile = new UserProfile(childPair.Value[0]);
                         break;
 
                     case LogBookElement.Profile_Server:
-                        Server = new ServerProfile(childPair.Value[0]);
+                        RequestedServerInfo = new ServerProfile(childPair.Value[0]);
                         break;
                 }
             }

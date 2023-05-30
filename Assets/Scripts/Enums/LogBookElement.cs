@@ -64,10 +64,13 @@ public enum LogBookElement
     Name,
     Code_Response,
     
+    List_User,
+
     Profile_User,
     Profile_Server,
 
     ID_User,
     ID_Client,
     ID_Server,
+    ID_Recycle
 }

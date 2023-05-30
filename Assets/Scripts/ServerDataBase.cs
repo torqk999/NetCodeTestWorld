@@ -19,17 +19,10 @@ public static class ServerDataBase
 
     public static void GenerateNewDefaultTextFile(string filePath)
     {
-        Debug.Log("Creating New TextFile...");
-
         if (!Directory.Exists(DirectoryPath))
-        {
             Directory.CreateDirectory(DirectoryPath);
-            Debug.Log("Directory Created!");
-        }
 
         using (StreamWriter sw = File.CreateText(filePath)) { }
-        //File.CreateText(filePath);
-        Debug.Log("File Created!");
     }
     public static string LoadDefaultTextFile(string filePath)
     {
@@ -45,18 +38,10 @@ public static class ServerDataBase
     }
     public static void SaveDefaultTextFile(string filePath, string contents)
     {
-        Debug.Log($"Saving file: {filePath}");
-        Debug.Log($"Path exists: {Directory.Exists(DirectoryPath)}");
-        if (Directory.Exists(DirectoryPath))
-            Debug.Log($"File exists: {File.Exists(filePath)}");
-
         if (!Directory.Exists(DirectoryPath))
             Directory.CreateDirectory(DirectoryPath);
 
         using (StreamWriter sw = File.CreateText(filePath))
             sw.Write(contents);
-        
-
-            //File.WriteAllText(filePath, contents);
     }
 }

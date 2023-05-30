@@ -52,7 +52,7 @@ public class Element
     public bool HasValue => _values.Count > 0;
     public bool HasChild => _children.Count > 0;
 
-    public Element(string name = null, Element parent = null)
+    public Element(string name, Element parent)
     {
         _parent = parent;
         _name = name != null ? name : parent != null ? parent.Children.Count.ToString() : null;
@@ -72,17 +72,23 @@ public class Element
 
     public void AddChildSafe(Element newChild)
     {
-        if (newChild == null)
+        AddChildSafe(new List<Element>() { newChild });
+    }
+
+    public void AddChildSafe(List<Element> newChildren)
+    {
+        if (newChildren == null || newChildren.Count < 1)
             return;
 
-        //Debug.Log($"existing child removed: {_childList.Remove(newChild)}");
-        //_childList.Add(newChild);
-
-        if (_children.ContainsKey(newChild.Name))
-            _children[newChild.Name].Add(newChild);
+        if (_children.ContainsKey(newChildren[0].Name))
+            _children[newChildren[0].Name].AddRange(newChildren);
 
         else
-            _children.Add(newChild.Name, new List<Element>() { newChild });
+        {
+            List<Element> newList = new List<Element>();
+            newList.AddRange(newChildren);
+            _children.Add(newChildren[0].Name, newList);
+        }     
     }
 
     public void AddValueSafe(string name, string value = null)
@@ -97,13 +103,17 @@ public class Element
     /// <param name="values">List of values</param>
     public void AddValueSafe(string name, List<string> values = null)
     {
-        if (name == null)
+        if (name == null || name == string.Empty)
             return;
 
         if (_values.ContainsKey(name))
-            _values[name] = values;
+            _values[name].AddRange(values);
 
         else
-            _values.Add(name, values);
+        {
+            List<string> newList = new List<string>();
+            newList.AddRange(values);
+            _values.Add(name, newList);
+        } 
     }
 }

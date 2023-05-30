@@ -41,14 +41,16 @@ public class LogInterface : MonoBehaviour
     public TMP_InputField LoginPasswordInput;
 
     public GameObject MasterPanel;
-    public GameObject MainPanel;
-    public GameObject LoginPanel;
 
-    /// <summary>
-    /// Test Area for toggled states of Login Panel
-    /// </summary>
+    public GameObject MainPanel;
+
+    public GameObject LoginPanel;
     public GameObject LogOutButton;
     public GameObject Login_RegisterButton;
+
+    public GameObject MemberPanel;
+    public GameObject SampleSubMemberPanel;
+    public GameObject SampleMemberButton;
 
     public Logger MyLogger;
     private StringBuilder LogBuilder = new StringBuilder();
@@ -268,6 +270,14 @@ public class LogInterface : MonoBehaviour
 
         if (Login_RegisterButton != null)
             Login_RegisterButton.SetActive(MyLogger.IsSpawned && !MyLogger.IsAdmin);
+    }
+    void UpdateMemberPanel()
+    {
+
+    }
+    void SetupMemberPanel()
+    {
+        
     }
     void Start()
     {

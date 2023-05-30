@@ -14,8 +14,8 @@ public struct ServerProfile : IElementBoxing
     public ulong ServerId => _serverId.HasValue? _serverId.Value : ulong.MaxValue;
     public bool IsRegistered => _serverId.HasValue;
 
-    public static ServerProfile Null = new ServerProfile();
-    public static ServerProfile Default = new ServerProfile("A default server");
+    public static readonly ServerProfile Null = new ServerProfile();
+    public static readonly ServerProfile Default = new ServerProfile("A default server");
     public ServerProfile(string serverName = null, ulong? serverId = null, DateTime? creation = null, DateTime? lastActivation = null, DateTime? lastDeActivation = null)
     {
         _serverName = serverName;

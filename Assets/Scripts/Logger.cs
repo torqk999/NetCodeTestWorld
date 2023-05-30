@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 
 public enum Chattribute
@@ -105,10 +106,10 @@ public class Logger : NetworkBehaviour
         Element loginElement = ElementBoxHelper.BuildElementTree(packedLogin, Enum.GetNames(typeof(LogBookElement)), out responseCode);
         Debug.Log($"ServerResponse: {responseCode}");
 
-        UserResponseToken responseToken = new UserResponseToken(loginElement);
+        PingToken responseToken = new PingToken(loginElement);
 
-        _userInstance = responseToken.Profile;
-        _serverInstance = responseToken.Server;
+        _userInstance = responseToken.RequestedProfile;
+        _serverInstance = responseToken.RequestedServerInfo;
     }
     #endregion
 
@@ -188,12 +189,8 @@ public class Logger : NetworkBehaviour
         if (_registryInstance.HasValue)
             _registryInstance.Value.Clear();
     }
-    /*public void GenerateNewClientFile()
-    {
-        Debug.Log("Sending call to database...");
-        ServerDataBase.GenerateNewDefaultTextFile(ServerDataBase.RegistryFilePath);
-    }*/
     #endregion
+
     #region Server
     public void RecieveMessage(ulong clientId, FastBufferReader buffer)
     {
@@ -276,35 +273,35 @@ public class Logger : NetworkBehaviour
 
         FastBufferWriter loginResponseBuffer = new FastBufferWriter((int)Chattribute.Credential, Allocator.Persistent, (int)Chattribute.Credential);
         UserCredential credentialRequest = new UserCredential(credentialElement);
-        UserRegistration existingRegistration;
-        UserProfile? newDefaultProfile;
-        UserResponseToken loginResponseToken;
+        UserRegistration? clientsRegistration;
+        //UserProfile? newDefaultProfile;
+        PingToken loginResponseToken;
 
-        if (RegistryInstance.TryGetValue(credentialRequest.LoginName, out existingRegistration))
+        if (RegistryInstance.TryGetRegistration(credentialRequest.LoginName, out clientsRegistration))
         {
-            if(!existingRegistration.CheckCredential(credentialRequest))
+            if(!clientsRegistration.Value.CheckCredential(credentialRequest))
             {
-                loginResponseToken = new UserResponseToken(ServerInstance, ResponseCode.Incorrect_Credential);
+                loginResponseToken = new PingToken(ServerInstance, ResponseCode.Incorrect_Credential);
                 Debug.Log("Failed login!");
             }
 
             else
             {
-                chatHandle.Profile = existingRegistration.Profile;
-                loginResponseToken = new UserResponseToken(existingRegistration.Profile, ServerInstance, ResponseCode.Logged_In);
+                chatHandle.Registration = clientsRegistration;
+                loginResponseToken = new PingToken(ResponseCode.Logged_In, null, clientsRegistration.Value.Profile, ServerInstance);
                 ChatMessage($"Welcome back {chatHandle.ClientName}!");
                 Debug.Log($"{chatHandle.ClientName} signed in.");
             }
         }
-        else if (!RegistryInstance.AddRegistration(credentialRequest, out newDefaultProfile))
+        else if (!RegistryInstance.AddRegistration(credentialRequest, out clientsRegistration))
         {
-            loginResponseToken = new UserResponseToken(ServerInstance, ResponseCode.Incorrect_Credential);
+            loginResponseToken = new PingToken(ResponseCode.Incorrect_Credential, null, new UserProfile(clientId), ServerInstance);
             Debug.LogError("Registration failed");
         }
         else
         {
-            chatHandle.Profile = newDefaultProfile;
-            loginResponseToken = new UserResponseToken(newDefaultProfile.Value, ServerInstance, ResponseCode.Registered);
+            chatHandle.Registration = clientsRegistration;
+            loginResponseToken = new PingToken(ResponseCode.Registered, null, clientsRegistration.Value.Profile, ServerInstance);
 
             ChatMessage($"{chatHandle.ClientName} Joined the server! Welcome!");
             Debug.Log($"{chatHandle.ClientName} registered.");
@@ -337,7 +334,7 @@ public class Logger : NetworkBehaviour
         }
         UserProfile guestProfile = new UserProfile($"Guest:{clientId}");
         Debug.Log($"GuestProfile Made. Name: {guestProfile.UserName}");
-        ChatClientHandle guestHandle = new ChatClientHandle(newClient, guestProfile);
+        ChatClientHandle guestHandle = new ChatClientHandle(newClient);
 
         if (ConnectedHandles.ContainsKey(clientId))
             ConnectedHandles[clientId] = guestHandle;
@@ -345,7 +342,7 @@ public class Logger : NetworkBehaviour
         else
             ConnectedHandles.Add(clientId, guestHandle);
 
-        UserResponseToken guestResponseToken = new UserResponseToken(ServerInstance);
+        PingToken guestResponseToken = new PingToken(ServerInstance);
 
         FastBufferWriter loginResponseBuffered = new FastBufferWriter((int)Chattribute.LogData, Allocator.Persistent, (int)Chattribute.LogData);
         loginResponseBuffered.WriteValueSafe(ElementBoxHelper.PackElementTree(guestProfile.Box()));
@@ -431,7 +428,7 @@ public class Logger : NetworkBehaviour
         }
 
         _userInstance = UserProfile.Admin;
-        ChatClientHandle adminHandle = new ChatClientHandle(adminClient, _userInstance);
+        ChatClientHandle adminHandle = new ChatClientHandle(adminClient, UserRegistration.Admin);
 
         if (ConnectedHandles.ContainsKey(AdminClientId))
         {

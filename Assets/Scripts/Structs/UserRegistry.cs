@@ -6,6 +6,7 @@ using UnityEngine;
 public struct UserRegistry : IElementBoxing
 {
     private Dictionary<string, UserRegistration> _registrations;
+    private List<ulong> _recyleBin;
 
     public static UserRegistry Null = new UserRegistry(true);
     public static UserRegistry Default = new UserRegistry(false);
@@ -13,12 +14,14 @@ public struct UserRegistry : IElementBoxing
     public UserRegistry(bool @null)
     {
         _registrations = null;
+        _recyleBin = null;
         if (!@null)
             _registrations = new Dictionary<string, UserRegistration>();
     }
     public UserRegistry(Element registryElement)
     {
         _registrations = new Dictionary<string, UserRegistration>();
+        _recyleBin = new List<ulong>();
         UnBox(registryElement);
     }
 
@@ -30,25 +33,50 @@ public struct UserRegistry : IElementBoxing
     {
         _registrations.Clear();
     }
-    public bool TryGetValue(string loginName, out UserRegistration registration)
+    public bool TryGetRegistration(ulong userId, out UserRegistration? result)
     {
-        registration = UserRegistration.Null;
+        result = null;
         if (_registrations == null)
             return false;
-        return _registrations.TryGetValue(loginName, out registration);
+        
+        foreach(UserRegistration reg in _registrations.Values)
+            if (reg.Profile.UserID == userId)
+            {
+                result = reg;
+                return true;
+            }
+                
+        return false;
+    }
+    public bool TryGetRegistration(string loginName, out UserRegistration? output)
+    {
+        output = null;
+        if (_registrations == null)
+            return false;
+        UserRegistration reg;
+        bool result = _registrations.TryGetValue(loginName, out reg);
+        output = result? reg : null;
+        return result;
     }
 
-    public bool AddRegistration(UserCredential credential, out UserProfile? newProfile)
+    public bool AddRegistration(UserCredential credential, out UserRegistration? newRegistration)
     {
         if (_registrations == null || _registrations.ContainsKey(credential.LoginName))
         {
-            newProfile = null;
+            newRegistration = null;
             return false;
         }
 
-        UserRegistration newRegistration = new UserRegistration((ulong)_registrations.Count, credential);
-        newProfile = newRegistration.Profile;
-        _registrations.Add(credential.LoginName, newRegistration);
+        ulong newUserId;
+
+        if (_recyleBin != null && _recyleBin.Count > 0)
+            newUserId = _recyleBin[0];
+
+        else
+            newUserId = (ulong)_registrations.Count;
+
+        newRegistration = new UserRegistration(newUserId, credential);
+        _registrations.Add(credential.LoginName, newRegistration.Value);
         return true;
     }
 
@@ -57,9 +85,14 @@ public struct UserRegistry : IElementBoxing
         if (_registrations == null || !_registrations.ContainsKey(credential.LoginName))
             return false;
 
+        UserRegistration removeRequest = _registrations[credential.LoginName];
+
+        _recyleBin.Add(removeRequest.Profile.UserID);
+        _registrations.Remove(credential.LoginName);
+
         // Do a swap with the last id so that unique id's are conserved.
 
-        ulong biggestId = 0;
+        /*ulong biggestId = 0;
         string biggestLoginName = null; // Get the user with the biggest Id
         foreach (UserRegistration reg in _registrations.Values)
         {
@@ -75,11 +108,11 @@ public struct UserRegistry : IElementBoxing
         if (biggestLoginName != null && _registrations.TryGetValue(biggestLoginName, out lastRegistrationId))
         {
             lastRegistrationId.Profile.ChangeProfile(_registrations[credential.LoginName].Profile.UserID);
-        }
+        }*/
 
         ///////
 
-        _registrations.Remove(credential.LoginName);
+        //_registrations.Remove(credential.LoginName);
         return true;
     }
 
@@ -88,10 +121,14 @@ public struct UserRegistry : IElementBoxing
         if (_registrations == null)
             return null;
 
-        Element myElement = new Element(LogBookElement.Registry.ToString());
+        Element myElement = new Element(LogBookElement.Registry.ToString(), parent);
 
         foreach (UserRegistration registration in _registrations.Values)
             myElement.AddChildSafe(registration.Box());
+
+        foreach (ulong recycle in _recyleBin)
+            myElement.AddValueSafe(LogBookElement.ID_Recycle.ToString(), recycle.ToString());
+        
 
         return myElement;
     }
