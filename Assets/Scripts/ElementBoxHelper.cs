@@ -265,10 +265,8 @@ public static class ElementBoxHelper
                         Expecting_Code = dataStream[i] == Response;
                         Expecting_Value = dataStream[i] == Terminate ? Expecting_Value : dataStream[i] == Value;
                         Resolve_Token = dataStream[i] == Terminate || dataStream[i] == Response;
-                        Push_To_Name = true;//!Expecting_Value;
+                        Push_To_Name = true;
                         continue;
-
-
 
                     case ValueSplit:
 

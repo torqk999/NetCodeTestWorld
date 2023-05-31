@@ -8,8 +8,8 @@ public struct UserRegistry : IElementBoxing
     private Dictionary<string, UserRegistration> _registrations;
     private List<ulong> _recyleBin;
 
-    public static UserRegistry Null = new UserRegistry(true);
-    public static UserRegistry Default = new UserRegistry(false);
+    public static readonly UserRegistry Null = new UserRegistry(true);
+    public static readonly UserRegistry Default = new UserRegistry(false);
 
     public UserRegistry(bool @null)
     {
