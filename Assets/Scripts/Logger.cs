@@ -16,6 +16,12 @@ public enum Chattribute
 
 public class Logger : NetworkBehaviour
 {
+    //// TESTING AREA ////
+    public string Derp;
+    public NetworkClient Derpette = null;
+    public int Derpin = 0;
+    //////////////////////
+
     public Element TestElement;
     public static string ServerHandle { get; private set; } = "[SERVER]";
     public static string AdminHandle { get; private set; } = "[ADMIN]";
@@ -88,6 +94,20 @@ public class Logger : NetworkBehaviour
         credentialBuffer.WriteValueSafe(ElementBoxHelper.PackElementTree(credential.Box()));
         NetworkManager.CustomMessagingManager.SendNamedMessage("LoginRequest", AdminClientId, credentialBuffer);
     }
+
+    public void Poosh(ulong clientId, FastBufferReader garbago)
+    {
+        Derpin++;
+        Debug.Log($"Derpin: {Derpin}");
+    }
+
+    public void foo2()
+    {
+        FastBufferWriter writer = new FastBufferWriter(16, Allocator.Persistent);
+        writer.WriteValueSafe(true);
+        NetworkManager.CustomMessagingManager.SendNamedMessage("Poosh", AdminClientId, writer);
+    }
+
     public void RecieveServerChatLog(ulong clientId, FastBufferReader buffer)
     {
         string packedLog;
@@ -293,7 +313,7 @@ public class Logger : NetworkBehaviour
                 Debug.Log($"{chatHandle.ClientName} signed in.");
             }
         }
-        else if (!RegistryInstance.AddRegistration(credentialRequest, out clientsRegistration))
+        else if (!RegistryInstance.AddRegistration(ServerInstance, credentialRequest, out clientsRegistration))
         {
             loginResponseToken = new PingToken(ResponseCode.Incorrect_Credential, null, new UserProfile(clientId), ServerInstance);
             Debug.LogError("Registration failed");
@@ -332,7 +352,10 @@ public class Logger : NetworkBehaviour
             Debug.LogError($"networkClient not found: {clientId}");
             return;
         }
-        UserProfile guestProfile = new UserProfile($"Guest:{clientId}");
+
+        Derpette = newClient;
+
+        UserProfile guestProfile = new UserProfile(clientId);
         Debug.Log($"GuestProfile Made. Name: {guestProfile.UserName}");
         ChatClientHandle guestHandle = new ChatClientHandle(newClient);
 
@@ -349,6 +372,11 @@ public class Logger : NetworkBehaviour
         NetworkManager.CustomMessagingManager.SendNamedMessage("Response", clientId, loginResponseBuffered);
 
         ChatMessage($"{guestHandle.ClientName} joined the server!");
+    }
+
+    private void foo0(NetworkClient client)
+    {
+        Debug.Log(client.OwnedObjects[0].GetComponent<Logger>().Derp);
     }
 
     public void UnRegisterChatClient(ulong clientId)
@@ -415,6 +443,8 @@ public class Logger : NetworkBehaviour
 
         NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Message", RecieveMessage);
         NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("LoginRequest", RecieveLogin_RegisterUserRequest);
+        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Poosh", Poosh);
+
         NetworkManager.OnClientConnectedCallback += RegisterGuestChatClient;
         NetworkManager.OnClientDisconnectCallback += UnRegisterChatClient;
 
@@ -427,8 +457,9 @@ public class Logger : NetworkBehaviour
             return;
         }
 
-        _userInstance = UserProfile.Admin;
-        ChatClientHandle adminHandle = new ChatClientHandle(adminClient, UserRegistration.Admin);
+        _userInstance = new UserProfile(ServerInstance, AdminHandle, AdminClientId);
+        UserRegistration adminReg = new UserRegistration(ServerInstance, _userInstance.Value, UserCredential.Null);
+        ChatClientHandle adminHandle = new ChatClientHandle(adminClient, adminReg);
 
         if (ConnectedHandles.ContainsKey(AdminClientId))
         {
@@ -455,6 +486,9 @@ public class Logger : NetworkBehaviour
     }
     void Update()
     {
-
+        if (Derpette != null && Derpette.OwnedObjects.Count > 0)
+        {
+            //Debug.Log(Derpette.OwnedObjects[0].GetComponent<Logger>())
+        }
     }
 }

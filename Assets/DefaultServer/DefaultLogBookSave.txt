@@ -2,50 +2,29 @@
 	<@Log>
 		<#Name>[SERVER]<\Name>
 		<#Message>[SERVER START]<\Message>
-		<#TimeStamp>638210045185108973<\TimeStamp>
+		<#TimeStamp>638210762329803720<\TimeStamp>
 		<#ID_Client>0<\ID_Client>
 		<#ID_User><\ID_User>
 	<\Log>
 	<@Log>
 		<#Name>[SERVER]<\Name>
 		<#Message>[ADMIN] joined the server!<\Message>
-		<#TimeStamp>638210045185228095<\TimeStamp>
+		<#TimeStamp>638210762329913746<\TimeStamp>
 		<#ID_Client>0<\ID_Client>
 		<#ID_User><\ID_User>
 	<\Log>
 	<@Log>
 		<#Name>[SERVER]<\Name>
 		<#Message>Guest:1 joined the server!<\Message>
-		<#TimeStamp>638210045249385550<\TimeStamp>
-		<#ID_Client>0<\ID_Client>
-		<#ID_User><\ID_User>
-	<\Log>
-	<@Log>
-		<#Name>Guest:1<\Name>
-		<#Message>hello<\Message>
-		<#TimeStamp>638210045307209407<\TimeStamp>
-		<#ID_Client>1<\ID_Client>
-		<#ID_User><\ID_User>
-	<\Log>
-	<@Log>
-		<#Name>[SERVER]<\Name>
-		<#Message>hello, would u like to join?<\Message>
-		<#TimeStamp>638210045391816452<\TimeStamp>
+		<#TimeStamp>638210762344071329<\TimeStamp>
 		<#ID_Client>0<\ID_Client>
 		<#ID_User><\ID_User>
 	<\Log>
 	<@Log>
 		<#Name>[SERVER]<\Name>
 		<#Message>Derpa Joined the server! Welcome!<\Message>
-		<#TimeStamp>638210045519087494<\TimeStamp>
+		<#TimeStamp>638210762445114892<\TimeStamp>
 		<#ID_Client>0<\ID_Client>
-		<#ID_User><\ID_User>
-	<\Log>
-	<@Log>
-		<#Name>Derpa<\Name>
-		<#Message>cool!<\Message>
-		<#TimeStamp>638210045601105011<\TimeStamp>
-		<#ID_Client>1<\ID_Client>
 		<#ID_User><\ID_User>
 	<\Log>
 <\Book>

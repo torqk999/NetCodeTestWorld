@@ -56,6 +56,7 @@ public class LogInterface : MonoBehaviour
     private StringBuilder LogBuilder = new StringBuilder();
 
     public bool MasterOptionsActive;
+    public bool MemberPanelActive;
     public bool DebugScreen;
 
     public LoginState LoginState;
@@ -219,6 +220,12 @@ public class LogInterface : MonoBehaviour
         return ToggleOptions[optionIndex];
     }
 
+    public void Poosh()
+    {
+        if (MyLogger != null)
+            MyLogger.foo2();
+    }
+
     void UpdateName()
     {
         if (NameLabel != null)
@@ -288,14 +295,15 @@ public class LogInterface : MonoBehaviour
     void Update()
     {
         if (MainPanel != null &&
-            MasterPanel != null)// &&
+            MasterPanel != null &&
+            MemberPanel != null)// &&
             //MyLog != null)
         {
-            RectTransform main = ((RectTransform)MainPanel.transform);
-            RectTransform master = ((RectTransform)MasterPanel.transform);
+            RectTransform main = (RectTransform)MainPanel.transform;
+            RectTransform master = (RectTransform)MasterPanel.transform;
+            RectTransform member = (RectTransform)MemberPanel.transform;
 
             if (!MasterPanel.activeSelf &&
-            //MyLog.NetworkManager.IsServer)
             MasterOptionsActive)
             {
                 MasterPanel.SetActive(true);
@@ -304,13 +312,26 @@ public class LogInterface : MonoBehaviour
                 
 
             if (MasterPanel.activeSelf &&
-            //!MyLog.NetworkManager.IsServer)
             !MasterOptionsActive)
             {
                 MasterPanel.SetActive(false);
                 main.offsetMin = new Vector2(main.offsetMin.x - master.sizeDelta.x, main.offsetMin.y);
             }
-                
+
+            if (!MemberPanel.activeSelf &&
+            MemberPanelActive)
+            {
+                MemberPanel.SetActive(true);
+                main.offsetMax = new Vector2(main.offsetMax.x - member.sizeDelta.x, main.offsetMax.y);
+            }
+
+
+            if (MemberPanel.activeSelf &&
+            !MemberPanelActive)
+            {
+                MemberPanel.SetActive(false);
+                main.offsetMax = new Vector2(main.offsetMax.x + member.sizeDelta.x, main.offsetMax.y);
+            }
         }
             
 

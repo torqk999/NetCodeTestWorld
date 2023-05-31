@@ -16,7 +16,11 @@ public struct UserRegistry : IElementBoxing
         _registrations = null;
         _recyleBin = null;
         if (!@null)
+        {
             _registrations = new Dictionary<string, UserRegistration>();
+            _recyleBin = new List<ulong>();
+        }
+            
     }
     public UserRegistry(Element registryElement)
     {
@@ -59,7 +63,7 @@ public struct UserRegistry : IElementBoxing
         return result;
     }
 
-    public bool AddRegistration(UserCredential credential, out UserRegistration? newRegistration)
+    public bool AddRegistration(ServerProfile server, UserCredential credential, out UserRegistration? newRegistration)
     {
         if (_registrations == null || _registrations.ContainsKey(credential.LoginName))
         {
@@ -75,7 +79,7 @@ public struct UserRegistry : IElementBoxing
         else
             newUserId = (ulong)_registrations.Count;
 
-        newRegistration = new UserRegistration(newUserId, credential);
+        newRegistration = new UserRegistration(server, newUserId, credential);
         _registrations.Add(credential.LoginName, newRegistration.Value);
         return true;
     }
@@ -90,29 +94,6 @@ public struct UserRegistry : IElementBoxing
         _recyleBin.Add(removeRequest.Profile.UserID);
         _registrations.Remove(credential.LoginName);
 
-        // Do a swap with the last id so that unique id's are conserved.
-
-        /*ulong biggestId = 0;
-        string biggestLoginName = null; // Get the user with the biggest Id
-        foreach (UserRegistration reg in _registrations.Values)
-        {
-            if (reg.Profile.UserID > biggestId)
-            {
-                biggestId = reg.Profile.UserID;
-                biggestLoginName = reg.Credential.LoginName;
-                break;
-            }
-        }
-
-        UserRegistration lastRegistrationId;
-        if (biggestLoginName != null && _registrations.TryGetValue(biggestLoginName, out lastRegistrationId))
-        {
-            lastRegistrationId.Profile.ChangeProfile(_registrations[credential.LoginName].Profile.UserID);
-        }*/
-
-        ///////
-
-        //_registrations.Remove(credential.LoginName);
         return true;
     }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -47,6 +48,7 @@ public struct UserProfile : IElementBoxing
     private ulong? _userId;
     private UserList? _friends;
     private UserList? _blocked;
+    //private int wins, losses;
 
     public string UserName => _userName == null ? "[Name not set]" : _userName;
     public ulong UserID => _userId == null ? ulong.MaxValue : _userId.Value;
