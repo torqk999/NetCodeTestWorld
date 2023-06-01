@@ -68,6 +68,11 @@ public class Logger : NetworkBehaviour
         // <<<--- Add Request change name logic here
         //UserInstance.SetUserName(newName) = newName;
     }
+
+    void foo0()
+    {
+        
+    }
     public void ChatMessage(string message)
     {
         if (IsServer)
