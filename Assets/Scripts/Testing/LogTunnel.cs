@@ -18,18 +18,35 @@ using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using Random = UnityEngine.Random;
 
-public class LobbyEngineTest : MonoBehaviour
+public class LogTunnel : NetworkBehaviour
 {
     public UnityTransport _transport;
+    
+    //public static KeyValuePair<string, Lobby> NotInLobby = new KeyValuePair<string, Lobby>(null, null);
+
+    private ulong? _currentClientId = null;
+    private Player _currentPlayer = null;
     private Lobby _currentLobby = null;
-    public static KeyValuePair<string, Lobby> NotInLobby = new KeyValuePair<string, Lobby>(null, null);
+
     private Dictionary<string, Lobby> _queryCache = new Dictionary<string, Lobby>(); // <string = lobbyId, Lobby>
+    private Dictionary<ulong, ChatClientHandle> ConnectedHandles = new Dictionary<ulong, ChatClientHandle>();
+
     private QueryLobbiesOptions _queryOptions = null;
     private QueryResponse _queryResponse = null;
     private bool _queryComplete = false;
+
     public Dictionary<string, Lobby> FoundLobbies => _queryCache;
     public Lobby CurrentLobby => _currentLobby;
-    private Player _currentPlayer;
+
+    //public bool IsHandled => Tunnel.IsSpawned && UserInstance.HasValue;
+    public bool IsAdmin => NetworkManager.IsHost || NetworkManager.IsServer;
+    //public bool IsGuest => IsHandled && UserInstance.Value.IsGuest;
+    //public bool IsLoggedIn => IsHandled && !IsGuest;
+    //public string MyName => IsLoggedIn ? UserInstance.Value.UserName : IsGuest ? $"Guest: {Tunnel.NetworkManager.LocalClientId}" : "[No Online Prescence]";// == null? $"Guest:{OwnerClientId}" : UserInstance.UserName;
+    //public int InstanceCount => _logInstance.Count;
+    public int ClientCount => ConnectedHandles.Count;
+    public List<NetworkObject> ClientOwnedObjects => NetworkManager.LocalClient.OwnedObjects;
+
     //public string ProfileName;
     //public bool LobbyHeartBeat;
     //public bool LobbyQueryUpdate;
@@ -37,6 +54,99 @@ public class LobbyEngineTest : MonoBehaviour
     public bool IsSignedIn =>
         UnityServices.State == ServicesInitializationState.Initialized &&
         AuthenticationService.Instance.IsSignedIn;
+
+    #region NET_CODE
+
+    public override void OnNetworkSpawn()
+    {
+        if (IsAdmin)
+            ServerSetup();
+
+        else
+            ClientSetup();
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        //BuildAndAddLog("[SERVER END]");
+
+        if (IsAdmin)
+            ServerCleanUp();
+
+        else
+            ClientCleanUp();
+    }
+
+    private void ServerCleanUp()
+    {
+        Debug.Log("Server Cleanup...");
+
+        ConnectedHandles.Clear();
+
+        //if (AUTO_SAVE_SERVER)
+        //    SaveFullServer();
+
+        Debug.Log("Server Ended...");
+    }
+
+    private void ClientCleanUp()
+    {
+
+    }
+
+    private void ServerSetup()
+    {
+        Debug.Log("Server Setup...");
+
+        //if (AUTO_LOAD_SERVER)
+        //    LoadFullServer();
+        //else
+        //{
+        //    _registryInstance = UserRegistry.Default;
+        //    _serverInstance = ServerProfile.Default;
+        //}
+
+        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Message", RecieveMessage);
+        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("LoginRequest", RecieveLogin_RegisterUserRequest);
+        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Poosh", Poosh);
+
+        NetworkManager.OnClientConnectedCallback += RegisterGuestChatClient;
+        NetworkManager.OnClientDisconnectCallback += UnRegisterChatClient;
+
+        ChatMessage("[SERVER START]");
+
+        NetworkClient adminClient;
+        if (!Tunnel.NetworkManager.ConnectedClients.TryGetValue(AdminClientId, out adminClient))
+        {
+            Debug.LogError($"adminClient not found: {AdminClientId}");
+            return;
+        }
+
+        _userInstance = new UserProfile(ServerInstance, AdminHandle, AdminClientId);
+        UserRegistration adminReg = new UserRegistration(ServerInstance, _userInstance.Value, UserCredential.Null);
+        ChatClientHandle adminHandle = new ChatClientHandle(adminClient, adminReg);
+
+        if (ConnectedHandles.ContainsKey(AdminClientId))
+        {
+            Debug.Log($"How? you have: {ConnectedHandles.Count}");
+            ConnectedHandles[AdminClientId] = adminHandle;
+        }
+
+
+        else
+            ConnectedHandles.Add(AdminClientId, adminHandle);
+
+        ChatMessage($"{adminHandle.ClientName} joined the server!");
+    }
+    private void ClientSetup()
+    {
+        Debug.Log("Client Setup...");
+
+        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Log", RecieveServerChatLog);
+        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Response", RecieveServerResponse);
+    }
+
+    #endregion
 
     public async void HostLobby(string serverName, int maxPlayers, bool isPrivate = false)
     {
@@ -127,6 +237,8 @@ public class LobbyEngineTest : MonoBehaviour
         Debug.Log("UnityServices Async Init complete!");
 
         await AuthenticationService.Instance.SignInAnonymouslyAsync();
+
+        AuthenticationService.Instance.pl
 
         Debug.Log($"Authenticated: {IsSignedIn}");
     }

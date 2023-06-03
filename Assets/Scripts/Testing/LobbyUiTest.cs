@@ -21,7 +21,7 @@ using TMPro;
 
 public class LobbyUiTest : MonoBehaviour
 {
-    public LobbyEngineTest Lobby;
+    public LogTunnel Lobby;
 
     //public TMP_Text ListText;
     public LobbyPanel LobbyPanelSample;
@@ -85,7 +85,7 @@ public class LobbyUiTest : MonoBehaviour
 
         //Debug.Log("Source Targets good");
 
-        Debug.Log($"{(Lobby.CurrentLobby == null ? "Not in lobby" : Lobby.CurrentLobby.Name)}");
+        //Debug.Log($"{(Lobby.CurrentLobby == null ? "Not in lobby" : Lobby.CurrentLobby.Name)}");
 
         if (Lobby.FoundLobbies.Count == _lobbyCountCache &&
             Lobby.CurrentLobby == _joinedCache)

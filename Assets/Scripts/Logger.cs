@@ -14,15 +14,17 @@ public enum Chattribute
     LogData = 2048
 }
 
-public class Logger : NetworkBehaviour
+public class Logger //: NetworkBehaviour
 {
     //// TESTING AREA ////
     public string Derp;
     public NetworkClient Derpette = null;
+    public Element TestElement;
     public int Derpin = 0;
     //////////////////////
 
-    public Element TestElement;
+    public LogTunnel Tunnel;
+    
     public static string ServerHandle { get; private set; } = "[SERVER]";
     public static string AdminHandle { get; private set; } = "[ADMIN]";
     public static ulong AdminClientId { get; private set; } = 0;
@@ -35,26 +37,29 @@ public class Logger : NetworkBehaviour
     [SerializeField]
     public const int LOG_INSTANCE_MAX = 500; // Needs full implementation...
 
-    private Dictionary<ulong, ChatClientHandle> ConnectedHandles = new Dictionary<ulong, ChatClientHandle>();
+    //private Dictionary<ulong, ChatClientHandle> ConnectedHandles = new Dictionary<ulong, ChatClientHandle>();
 
     private LogBook _logInstance;
+    private UserProfile? _userInstance;
+
+
     private UserRegistry? _registryInstance;
     private ServerProfile? _serverInstance;
-    private UserProfile? _userInstance;
+    
 
     public LogBook LogInstance => _logInstance;
     public UserRegistry RegistryInstance => _registryInstance.HasValue ? _registryInstance.Value : UserRegistry.Null;
     public ServerProfile ServerInstance => _serverInstance.HasValue ? _serverInstance.Value : ServerProfile.Null;
     public UserProfile? UserInstance => _userInstance; // nullable for the sake of the interface interpreter.
 
-    public bool IsHandled => IsSpawned && UserInstance.HasValue;
-    public bool IsAdmin => NetworkManager.IsHost || NetworkManager.IsServer;
+    public bool IsHandled => Tunnel.IsSpawned && UserInstance.HasValue;
+    public bool IsAdmin => Tunnel.NetworkManager.IsHost || Tunnel.NetworkManager.IsServer;
     public bool IsGuest => IsHandled && UserInstance.Value.IsGuest;
     public bool IsLoggedIn => IsHandled && !IsGuest;
-    public string MyName => IsLoggedIn ? UserInstance.Value.UserName : IsGuest ? $"Guest: {NetworkManager.LocalClientId}" : "[No Online Prescence]";// == null? $"Guest:{OwnerClientId}" : UserInstance.UserName;
+    public string MyName => IsLoggedIn ? UserInstance.Value.UserName : IsGuest ? $"Guest: {Tunnel.NetworkManager.LocalClientId}" : "[No Online Prescence]";// == null? $"Guest:{OwnerClientId}" : UserInstance.UserName;
     public int InstanceCount => _logInstance.Count;
-    public int ClientCount => ConnectedHandles.Count;
-    public List<NetworkObject> ClientOwnedObjects => NetworkManager.LocalClient.OwnedObjects;
+    //public int ClientCount => ConnectedHandles.Count;
+    //public List<NetworkObject> ClientOwnedObjects => Tunnel.NetworkManager.LocalClient.OwnedObjects;
 
     public static int StringSizeBytes(string input) // Apparantly .Net says so.... https://www.red-gate.com/simple-talk/blogs/how-big-is-a-string-in-net/#:~:text=A%20string%20is%20composed%20of,a%204%2Dbyte%20type%20descriptor)
     {
@@ -75,7 +80,7 @@ public class Logger : NetworkBehaviour
     }
     public void ChatMessage(string message)
     {
-        if (IsServer)
+        if (IsAdmin)
             BuildAndDistributeLog(message);
         else
             SendClientMessage(message);
@@ -86,7 +91,7 @@ public class Logger : NetworkBehaviour
         FastBufferWriter messageBuffer = new FastBufferWriter((int)Chattribute.Message, Allocator.Persistent, (int)Chattribute.Message);
         messageBuffer.WriteValueSafe(message);
         Debug.Log($"messageBuffer: {messageBuffer}");
-        NetworkManager.CustomMessagingManager.SendNamedMessage("Message", AdminClientId, messageBuffer);
+        Tunnel.NetworkManager.CustomMessagingManager.SendNamedMessage("Message", AdminClientId, messageBuffer);
     }
     public void SendLoginUserRequest(string loginName, string passWord)
     {
@@ -97,7 +102,7 @@ public class Logger : NetworkBehaviour
         UserCredential credential = new UserCredential(loginName, passWord);
         FastBufferWriter credentialBuffer = new FastBufferWriter((int)Chattribute.Credential, Allocator.Persistent, (int)Chattribute.Credential);
         credentialBuffer.WriteValueSafe(ElementBoxHelper.PackElementTree(credential.Box()));
-        NetworkManager.CustomMessagingManager.SendNamedMessage("LoginRequest", AdminClientId, credentialBuffer);
+        Tunnel.NetworkManager.CustomMessagingManager.SendNamedMessage("LoginRequest", AdminClientId, credentialBuffer);
     }
 
     public void Poosh(ulong clientId, FastBufferReader garbago)
@@ -110,7 +115,7 @@ public class Logger : NetworkBehaviour
     {
         FastBufferWriter writer = new FastBufferWriter(16, Allocator.Persistent);
         writer.WriteValueSafe(true);
-        NetworkManager.CustomMessagingManager.SendNamedMessage("Poosh", AdminClientId, writer);
+        Tunnel.NetworkManager.CustomMessagingManager.SendNamedMessage("Poosh", AdminClientId, writer);
     }
 
     public void RecieveServerChatLog(ulong clientId, FastBufferReader buffer)
@@ -264,7 +269,7 @@ public class Logger : NetworkBehaviour
         Debug.Log($"PackedLog: {packedLog}");
         instanceLog.WriteValueSafe(packedLog);
 
-        NetworkManager.CustomMessagingManager.SendNamedMessageToAll("Log", instanceLog);
+        Tunnel.NetworkManager.CustomMessagingManager.SendNamedMessageToAll("Log", instanceLog);
         
     }
     public void RecieveLogin_RegisterUserRequest(ulong clientId, FastBufferReader credentials)
@@ -277,7 +282,7 @@ public class Logger : NetworkBehaviour
 
         Debug.Log("Checking Credentials...");
         NetworkClient netClient;
-        if(!NetworkManager.ConnectedClients.TryGetValue(clientId, out netClient))
+        if(!Tunnel.NetworkManager.ConnectedClients.TryGetValue(clientId, out netClient))
         {
             Debug.LogError($"netClient not found: {clientId}");
             return;
@@ -333,7 +338,7 @@ public class Logger : NetworkBehaviour
         }
 
         loginResponseBuffer.WriteValueSafe(ElementBoxHelper.PackElementTree(loginResponseToken.Box()));
-        NetworkManager.CustomMessagingManager.SendNamedMessage("Response", clientId, loginResponseBuffer);
+        Tunnel.NetworkManager.CustomMessagingManager.SendNamedMessage("Response", clientId, loginResponseBuffer);
     }
 
 
@@ -352,7 +357,7 @@ public class Logger : NetworkBehaviour
         }
 
         NetworkClient newClient;
-        if (!NetworkManager.ConnectedClients.TryGetValue(clientId, out newClient))
+        if (!Tunnel.NetworkManager.ConnectedClients.TryGetValue(clientId, out newClient))
         {
             Debug.LogError($"networkClient not found: {clientId}");
             return;
@@ -374,7 +379,7 @@ public class Logger : NetworkBehaviour
 
         FastBufferWriter loginResponseBuffered = new FastBufferWriter((int)Chattribute.LogData, Allocator.Persistent, (int)Chattribute.LogData);
         loginResponseBuffered.WriteValueSafe(ElementBoxHelper.PackElementTree(guestProfile.Box()));
-        NetworkManager.CustomMessagingManager.SendNamedMessage("Response", clientId, loginResponseBuffered);
+        Tunnel.NetworkManager.CustomMessagingManager.SendNamedMessage("Response", clientId, loginResponseBuffered);
 
         ChatMessage($"{guestHandle.ClientName} joined the server!");
     }
@@ -397,9 +402,9 @@ public class Logger : NetworkBehaviour
     }
     #endregion
 
-    public override void OnNetworkSpawn()
+    /*public override void OnNetworkSpawn()
     {
-        if (IsServer)
+        if (IsAdmin)
             ServerSetup();
 
         else
@@ -410,7 +415,7 @@ public class Logger : NetworkBehaviour
     {
         BuildAndAddLog("[SERVER END]");
 
-        if (IsServer)
+        if (IsAdmin)
             ServerCleanUp();
 
         else
@@ -446,17 +451,17 @@ public class Logger : NetworkBehaviour
             _serverInstance = ServerProfile.Default;
         }
 
-        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Message", RecieveMessage);
-        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("LoginRequest", RecieveLogin_RegisterUserRequest);
-        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Poosh", Poosh);
+        Tunnel.NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Message", RecieveMessage);
+        Tunnel.NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("LoginRequest", RecieveLogin_RegisterUserRequest);
+        Tunnel.NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Poosh", Poosh);
 
-        NetworkManager.OnClientConnectedCallback += RegisterGuestChatClient;
-        NetworkManager.OnClientDisconnectCallback += UnRegisterChatClient;
+        Tunnel.NetworkManager.OnClientConnectedCallback += RegisterGuestChatClient;
+        Tunnel.NetworkManager.OnClientDisconnectCallback += UnRegisterChatClient;
 
         ChatMessage("[SERVER START]");
 
         NetworkClient adminClient;
-        if(!NetworkManager.ConnectedClients.TryGetValue(AdminClientId, out adminClient))
+        if(!Tunnel.NetworkManager.ConnectedClients.TryGetValue(AdminClientId, out adminClient))
         {
             Debug.LogError($"adminClient not found: {AdminClientId}");
             return;
@@ -482,9 +487,9 @@ public class Logger : NetworkBehaviour
     {
         Debug.Log("Client Setup...");
 
-        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Log", RecieveServerChatLog);
-        NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Response", RecieveServerResponse);
-    }
+        Tunnel.NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Log", RecieveServerChatLog);
+        Tunnel.NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler("Response", RecieveServerResponse);
+    }*/
     void Start()
     {
         _logInstance = new LogBook(Logger.LOG_INSTANCE_MAX);
